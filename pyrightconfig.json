@@ -1,0 +1,14 @@
+{
+  "include": ["src"],
+
+  "exclude": ["**/node_modules", "**/__pycache__", "src/typestubs"],
+  "useLibraryCodeForTypes": true,
+  "typeCheckingMode": "off",
+  "venvPath": "C:\\Users\\jerme\\anaconda3\\envs\\mmc",
+
+  "reportMissingImports": true,
+  "reportMissingTypeStubs": false,
+
+  "pythonVersion": "3.6",
+  "pythonPlatform": "Linux"
+}
