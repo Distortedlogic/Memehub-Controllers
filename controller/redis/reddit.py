@@ -1,7 +1,7 @@
 import json
 
 from controller.constants import DAY_TD, FULL_SUB_LIST, MONTH_TD, WEEK_TD
-from controller.extensions import db
+from controller.generated.models import db
 from controller.reddit import RedditMeme, RedditScore
 from controller.reddit.functions import *
 from controller.reddit.functions.database import (

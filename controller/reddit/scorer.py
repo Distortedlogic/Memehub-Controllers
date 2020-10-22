@@ -5,7 +5,7 @@ from sqlalchemy import and_
 from sqlalchemy.orm import load_only
 
 from controller.constants import HOUR_TD, MONTH_TD
-from controller.extensions import db
+from controller.generated.models import RedditMeme, RedditScore, db
 from controller.reddit.functions.database import (
     get_subs_to_scrape,
     redditmeme_max_ts,
@@ -14,7 +14,6 @@ from controller.reddit.functions.database import (
 )
 from controller.reddit.functions.dataframe import score_df, score_kwargs_gen
 from controller.reddit.functions.misc import round_hour
-from controller.reddit.schema import RedditMeme, RedditScore
 
 
 class RedditScorer:

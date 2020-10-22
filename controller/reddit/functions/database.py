@@ -1,5 +1,5 @@
 from typing import List
-from controller.extensions import db
+from controller.generated.models import db
 from sqlalchemy import and_, func
 import time
 

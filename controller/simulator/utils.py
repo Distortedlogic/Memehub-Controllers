@@ -2,7 +2,6 @@ import random
 
 import arrow
 import bcrypt
-from controller.extensions import db
 from controller.generated.models import (
     Clan,
     Comment,
@@ -11,6 +10,7 @@ from controller.generated.models import (
     Meme,
     MemeVote,
     User,
+    db,
 )
 from faker import Faker
 from sqlalchemy import func

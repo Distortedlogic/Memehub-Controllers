@@ -1,11 +1,9 @@
-from controller.utils.image_text import image_text
-import redisai
 import numpy as np
+import redisai
+from controller.generated.models import RedditMeme, db
+from controller.utils.image_text import image_text
 from sqlalchemy import and_
 from tqdm import tqdm
-
-from controller.extensions import db
-from controller.reddit.schema import RedditMeme
 
 
 def build_features(self):

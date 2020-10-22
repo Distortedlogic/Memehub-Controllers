@@ -14,12 +14,11 @@ from numpy import ndarray
 from tqdm import tqdm
 
 from controller.constants import FULL_SUB_LIST, THE_BEGINNING
-from controller.extensions import db
+from controller.generated.models import RedditMeme, Redditor, db
 from controller.reddit.functions.database import get_subs_to_scrape, redditmeme_max_ts
 from controller.reddit.functions.misc import round_hour_down
 from controller.reddit.functions.praw_mp import initializer, praw_by_id
 from controller.reddit.functions.pushshift import query_pushshift
-from controller.reddit.schema import RedditMeme, Redditor
 from controller.utils.image_text import image_text
 
 

@@ -8,17 +8,7 @@ HOUR_TD = 60 * 60
 THE_BEGINNING: int = (
     arrow.utcnow().shift(days=-31).replace(hour=0, minute=0, second=0).timestamp
 )
-# THE_BEGINNING = arrow.utcnow().shift(days=-1).timestamp
 FULL_SUB_LIST = ["dankmemes"]
-# [
-#     "wholesomememes",
-#     "HistoryMemes",
-#     "dankmemes",
-#     "memes",
-#     "memeEconomy",
-#     "DeepFriedMemes",
-#     "lotrmemes",
-# ]
 IMG_HEIGHT = 224
 IMG_WIDTH = 224
 IMG_CHANNEL = 3

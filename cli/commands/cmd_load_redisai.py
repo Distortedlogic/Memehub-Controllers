@@ -1,5 +1,5 @@
+import click
 from controller.rai import load_models_to_redisai
-import subprocess, click, os
 
 
 @click.command()

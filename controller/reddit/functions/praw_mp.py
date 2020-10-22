@@ -1,10 +1,10 @@
-from billiard import current_process
-from praw.reddit import Submission
-
 from datetime import datetime
-from praw import Reddit
 from json import loads
+
+from billiard import current_process
 from decouple import config
+from praw import Reddit
+from praw.reddit import Submission
 
 
 def init_reddit(id):
@@ -67,7 +67,7 @@ def extract_data(submission):
         "title": submission.title,
         "username": str(submission.author),
         "timestamp": submission.created_utc,
-        "datetime": datetime.fromtimestamp(submission.created_utc),
+        "created_at": datetime.fromtimestamp(submission.created_utc),
         "url": submission.url,
         "upvote_ratio": submission.upvote_ratio,
         "upvotes": submission.score,
