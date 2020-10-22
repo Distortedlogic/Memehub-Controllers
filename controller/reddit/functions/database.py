@@ -1,12 +1,11 @@
-from typing import List
-from controller.generated.models import db
-from sqlalchemy import and_, func
 import time
+from typing import List
+
+from controller.generated.models import RedditMeme, RedditScore, db
+from sqlalchemy import and_
 
 
 def num_posts(subreddit: str, start: int, end: int) -> int:
-    from controller.reddit import RedditMeme
-
     try:
         return (
             db.session.query(RedditMeme)
@@ -24,8 +23,6 @@ def num_posts(subreddit: str, start: int, end: int) -> int:
 
 
 def percent_change(subreddit: str, start: int, end: int) -> float:
-    from controller.reddit import RedditMeme
-
     try:
         current = (
             db.session.query(RedditMeme)
@@ -55,8 +52,6 @@ def percent_change(subreddit: str, start: int, end: int) -> float:
 
 
 def redditmeme_min_ts(subreddit: str) -> int:
-    from controller.reddit import RedditMeme
-
     try:
         min_ts = int(
             db.session.query(db.func.min(RedditMeme.timestamp))
@@ -69,8 +64,6 @@ def redditmeme_min_ts(subreddit: str) -> int:
 
 
 def redditmeme_max_ts(subreddit: str) -> int:
-    from controller.reddit import RedditMeme
-
     try:
         max_ts = int(
             db.session.query(db.func.max(RedditMeme.timestamp))
@@ -83,8 +76,6 @@ def redditmeme_max_ts(subreddit: str) -> int:
 
 
 def redditscore_min_ts(subreddit: str) -> int:
-    from controller.reddit import RedditScore
-
     try:
         min_ts = int(
             db.session.query(db.func.min(RedditScore.timestamp))
@@ -97,8 +88,6 @@ def redditscore_min_ts(subreddit: str) -> int:
 
 
 def redditscore_max_ts(subreddit: str) -> int:
-    from controller.reddit import RedditScore
-
     try:
         max_ts = int(
             db.session.query(db.func.max(RedditScore.timestamp))
@@ -111,8 +100,6 @@ def redditscore_max_ts(subreddit: str) -> int:
 
 
 def get_subs_to_scrape() -> List[str]:
-    from controller.reddit import RedditMeme
-
     try:
         subs: List[str] = [
             data[0]

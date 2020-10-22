@@ -1,6 +1,7 @@
 # coding: utf-8
 from controller.reddit.functions.misc import dump_datetime
 from flask_sqlalchemy import SQLAlchemy
+from sqlalchemy.dialects.postgresql.base import DOUBLE_PRECISION
 
 db = SQLAlchemy()
 
@@ -183,13 +184,14 @@ class RedditMeme(db.Model):
     meme_text = db.Column(db.String(1000000))
     template = db.Column(db.String(100))
     timestamp = db.Column(db.Integer, nullable=False)
-    createdAt = db.Column(db.DateTime, nullable=False)
+    created_at = db.Column(db.DateTime, nullable=False)
     upvote_ratio = db.Column(db.Float(53), nullable=False)
     upvotes = db.Column(db.Integer, nullable=False)
     downvotes = db.Column(db.Integer, nullable=False)
     num_comments = db.Column(db.Integer, nullable=False)
-    features = db.Column(db.ARRAY(db.DOUBLE_PRECISION(precision=53)))
+    features = db.Column(db.ARRAY(DOUBLE_PRECISION(precision=53)))
     redditorId = db.Column(db.ForeignKey("redditors.id"))
+    redditor_id = db.Column(db.Integer)
 
     redditor = db.relationship(
         "Redditor",
@@ -234,6 +236,7 @@ class RedditScore(db.Model):
     hu_score = db.Column(db.Float(53), nullable=False)
     lowest_ratio = db.Column(db.Float(53), nullable=False)
     redditorId = db.Column(db.ForeignKey("redditors.id"))
+    redditor_id = db.Column(db.Integer)
 
     redditor = db.relationship(
         "Redditor",

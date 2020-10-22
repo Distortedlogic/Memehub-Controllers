@@ -1,4 +1,6 @@
-import subprocess, click, os
+import subprocess
+
+import click
 
 
 @click.command()
@@ -10,6 +12,6 @@ def cli():
         name {[type]} -- filename without ext
     """
 
-    cmd = "sqlacodegen --flask --outfile controller/generated/models.py postgresql://postgres:postgres@127.0.0.1:2345"
+    cmd = "sqlacodegen --flask --outfile controller/generated/models.py postgresql://postgres:postgres@127.0.0.1:5432"
 
     return subprocess.call(cmd, shell=True)
