@@ -36,7 +36,12 @@ jobs:
             mv /tmp/docker/* /usr/bin
       - run:
           name: Build Backend Docker Image
-          command: docker build -f Dockerfile.prod -t distortedlogic/controllers:latest .
+          command: docker build
+            --build-arg POSTGRES_USER=$POSTGRES_USER
+            --build-arg POSTGRES_PASSWORD=$POSTGRES_PASSWORD
+            --build-arg POSTGRES_PASSWORD=$POSTGRES_PASSWORD
+            -f Dockerfile.prod
+            -t distortedlogic/controllers:latest .
       - run: docker login -u distortedlogic -p $DOCKERHUB_TOKEN
       - run: docker push distortedlogic/controllers:latest
 
@@ -44,4 +49,6 @@ workflows:
   build-docker-image-only:
     jobs:
       - build-and-deploy:
-          context: dockerhub
+          context:
+            - dockerhub
+            - shared
