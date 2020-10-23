@@ -166,8 +166,9 @@ setuptools == 49.6.0
 # C:\github\MemeMarketCap\controllers\controller\utils\build_features.py: 5
 tqdm == 4.47.0
 
-psaw == 0.0.12
+celery-singleton == 0.3.0
 
+psaw == 0.0.12
 ml2rt == 0.2.0
 keras2onnx
 

@@ -81,8 +81,8 @@ class RedditController:
             raw_memes = [
                 meme for meme in raw_memes if meme and meme["username"] != "None"
             ]
-            if not self.full:
-                raw_memes = self.get_features(raw_memes)
+            # if not self.full:
+            #     raw_memes = self.get_features(raw_memes)
             for meme in raw_memes:
                 try:
                     redditor = (
@@ -99,7 +99,8 @@ class RedditController:
                 )
             db.session.commit()
 
-    def update(self, full: bool = False) -> None:
+    def update(self, full: bool = False, verbose=None) -> None:
+        self.verbose = verbose if verbose else self.verbose
         self.full = full
         self.now = round_hour_down(arrow.utcnow().timestamp)
         subs = FULL_SUB_LIST if full else get_subs_to_scrape()

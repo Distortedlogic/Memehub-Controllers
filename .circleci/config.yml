@@ -24,7 +24,6 @@ jobs:
           paths:
             - node_modules
           key: v1-dependencies-{{checksum "requirements.txt"}}
-      - run: npm run build
       - setup_remote_docker:
           docker_layer_caching: false
       - run:
@@ -37,13 +36,5 @@ jobs:
             mv /tmp/docker/* /usr/bin
       - run:
           name: Build Backend Docker Image
-          command: docker build --build-arg CORS_ORIGIN=$CORS_ORIGIN
-            --build-arg HIVE_ACCOUNT=$HIVE_ACCOUNT
-            --build-arg ACTIVE_WIF=$ACTIVE_WIF
-            --build-arg RC_THRESHOLD=$RC_THRESHOLD
-            --build-arg AWS_ID=$AWS_ID
-            --build-arg AWS_KEY=$AWS_KEY
-            --build-arg SECRET=$SECRET
-            -f Dockerfile.prod -t dokku/controllers:latest .
-      - run: docker save dokku/backend:latest | bzip2 | ssh  -o StrictHostKeyChecking=no ubuntu@ec2-3-236-121-24.compute-1.amazonaws.com \"bunzip2 | docker load\"
-      - run: ssh  -o StrictHostKeyChecking=no ubuntu@ec2-3-236-121-24.compute-1.amazonaws.com \"dokku tags:deploy controllers latest\"
+          command: docker build -f Dockerfile.prod -t distortedlogic/controllers:latest .
+      - run: docker push distortedlogic/controllers:latest

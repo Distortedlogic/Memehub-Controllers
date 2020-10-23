@@ -1,4 +1,5 @@
 from celery import Celery
+from celery_singleton import Singleton
 from decouple import config
 from flask import Flask
 
@@ -15,14 +16,13 @@ def create_celery_app(app=None):
         include=CELERY_TASK_LIST,
     )
     celery.conf.update(app.config)
-    TaskBase = celery.Task
 
-    class ContextTask(TaskBase):
+    class ContextTask(Singleton):
         abstract = True
 
         def __call__(self, *args, **kwargs):
             with app.app_context():
-                return TaskBase.__call__(self, *args, **kwargs)
+                return Singleton.__call__(self, *args, **kwargs)
 
     celery.Task = ContextTask
     return celery
