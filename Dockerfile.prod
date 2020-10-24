@@ -18,14 +18,14 @@ ARG reddit_oauth_4
 ARG reddit_oauth_5
 ARG reddit_oauth_6
 ARG reddit_oauth_7
-ARG SECRECT_KEY
+ARG SECRET_KEY
 ARG POSTGRES_USER
 ARG POSTGRES_PASSWORD
 ARG POSTGRES_DB
 ENV POSTGRES_USER=$POSTGRES_USER \
   POSTGRES_PASSWORD=$POSTGRES_PASSWORD \
   POSTGRES_DB=$POSTGRES_DB \
-  SECRECT_KEY=$SECRECT_KEY \
+  SECRET_KEY=$SECRET_KEY \
   reddit_oauth_0=$reddit_oauth_0 \
   reddit_oauth_1=$reddit_oauth_1 \
   reddit_oauth_2=$reddit_oauth_2 \
