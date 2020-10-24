@@ -40,6 +40,15 @@ jobs:
             --build-arg POSTGRES_USER=$POSTGRES_USER
             --build-arg POSTGRES_PASSWORD=$POSTGRES_PASSWORD
             --build-arg POSTGRES_PASSWORD=$POSTGRES_PASSWORD
+            --build-arg SECRET_KEY=$SECRET_KEY
+            --build-arg reddit_oauth_0=$reddit_oauth_0
+            --build-arg reddit_oauth_1=$reddit_oauth_1
+            --build-arg reddit_oauth_2=$reddit_oauth_2
+            --build-arg reddit_oauth_3=$reddit_oauth_3
+            --build-arg reddit_oauth_4=$reddit_oauth_4
+            --build-arg reddit_oauth_5=$reddit_oauth_5
+            --build-arg reddit_oauth_6=$reddit_oauth_6
+            --build-arg reddit_oauth_7=$reddit_oauth_7
             -f Dockerfile.prod
             -t distortedlogic/controllers:latest .
       - run: docker login -u distortedlogic -p $DOCKERHUB_TOKEN
