@@ -58,6 +58,10 @@ workflows:
   build-docker-image-only:
     jobs:
       - build-and-deploy:
+          filters:
+            branches:
+              only:
+                - master
           context:
             - dockerhub
             - shared
