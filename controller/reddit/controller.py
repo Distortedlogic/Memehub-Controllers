@@ -78,9 +78,6 @@ class RedditController:
             except:
                 print("empty data from reddit stream")
                 return
-            raw_memes = [
-                meme for meme in raw_memes if meme and meme["username"] != "None"
-            ]
             # if not self.full:
             #     raw_memes = self.get_features(raw_memes)
             for meme in raw_memes:

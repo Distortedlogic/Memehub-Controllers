@@ -17,4 +17,4 @@ COPY requirements.txt requirements.txt
 RUN --mount=type=cache,target=/root/.cache/pip pip install -r requirements.txt
 COPY . .
 RUN pip install --editable .
-CMD gunicorn -c "python:config.gunicorn" "controller:APP" --log-level=error
+CMD gunicorn -c "python:config.gunicorn" "controller:APP" --reload --log-level=error

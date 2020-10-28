@@ -3,7 +3,6 @@ import random
 import arrow
 import bcrypt
 from controller.generated.models import (
-    Clan,
     Comment,
     CommentVote,
     Follow,
@@ -36,8 +35,6 @@ def init_db():
     db.session.query(Meme).delete()
     db.session.commit()
     db.session.query(User).delete()
-    db.session.commit()
-    db.session.query(Clan).delete()
     db.session.commit()
 
     db.session.add(
@@ -157,21 +154,6 @@ def vote_comment(userId, commentId, t1, t2):
             upvote=roll_dice(0.75),
         )
     )
-
-
-def create_clans(num):
-    for (userId,) in db.session.query(User.id).order_by(func.random()).limit(num):
-        name = fake.profile(fields=["username"])["username"]
-        db.session.add(Clan(**dict(creatorId=userId, name=name)))
-    db.session.commit()
-    for (clanId,) in db.session.query(Clan.id):
-        for user in (
-            db.session.query(User)
-            .filter(User.clanId == None)
-            .limit(random.randint(2, 5))
-        ):
-            user.clanId = clanId
-        db.session.commit()
 
 
 action_to_points = dict(
