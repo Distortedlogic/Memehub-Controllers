@@ -82,11 +82,11 @@ class Follow(db.Model):
     )
     createdAt = db.Column(db.DateTime, nullable=False, server_default=db.FetchedValue())
 
-    user = db.relationship(
-        "User", primaryjoin="Follow.followerId == User.id", backref="user_follows"
+    follower = db.relationship(
+        "User", primaryjoin="Follow.followerId == User.id", backref="following"
     )
-    user1 = db.relationship(
-        "User", primaryjoin="Follow.followingId == User.id", backref="user_follows_0"
+    following = db.relationship(
+        "User", primaryjoin="Follow.followingId == User.id", backref="followers"
     )
 
 
