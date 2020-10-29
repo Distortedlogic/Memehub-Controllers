@@ -1,4 +1,5 @@
 import random
+import uuid
 
 import arrow
 import bcrypt
@@ -37,8 +38,10 @@ def init_db():
     db.session.query(User).delete()
     db.session.commit()
 
+    print(str(uuid.uuid4()))
     db.session.add(
         User(
+            id=str(uuid.uuid4()),
             username="jermeek",
             email="jermeek@gmail.com",
             createdAt=arrow.utcnow().shift(days=-40).naive,
@@ -50,6 +53,7 @@ def init_db():
     userId = db.session.query(User).first().id
     db.session.add(
         Meme(
+            id=uuid.uuid4(),
             userId=userId,
             url=fake.image_url(),
             createdAt=arrow.utcnow().shift(days=-40).naive,
@@ -59,6 +63,7 @@ def init_db():
     memeId = db.session.query(Meme).first().id
     db.session.add(
         Comment(
+            id=uuid.uuid4(),
             userId=userId,
             memeId=memeId,
             text="init",
@@ -76,6 +81,7 @@ def create_user(t1, t2):
     ):
         db.session.add(
             User(
+                id=uuid.uuid4(),
                 username=profile["username"],
                 email=profile["mail"],
                 createdAt=fake.date_time_between(t1.naive, t2.naive),
@@ -100,6 +106,7 @@ def follow_user(followerId, followingId, t1, t2):
 def post_meme(userId, url, t1, t2):
     db.session.add(
         Meme(
+            id=uuid.uuid4(),
             title=fake.text(max_nb_chars=50),
             community=random.choice(
                 [
@@ -137,6 +144,7 @@ def vote_meme(userId, memeId, t1, t2):
 def post_comment(userId, memeId, t1, t2):
     db.session.add(
         Comment(
+            id=uuid.uuid4(),
             userId=userId,
             memeId=memeId,
             text=fake.text(),

@@ -63,6 +63,7 @@ class RedditController:
 
     def stream(self, subreddit: str, start_time: int, end_time: int):
         for id_iter in query_pushshift(subreddit, start_time, end_time):
+            print(cpu_count())
             with Pool(cpu_count(), initializer) as workers:
                 if self.verbose:
                     yield list(tqdm(workers.imap_unordered(praw_by_id, id_iter)))

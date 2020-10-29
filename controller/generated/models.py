@@ -12,13 +12,13 @@ class CommentVote(db.Model):
     userId = db.Column(
         db.ForeignKey("users.id", ondelete="CASCADE"), primary_key=True, nullable=False
     )
+    upvote = db.Column(db.Boolean, nullable=False)
+    createdAt = db.Column(db.DateTime, nullable=False, server_default=db.FetchedValue())
     commentId = db.Column(
         db.ForeignKey("comments.id", ondelete="CASCADE"),
         primary_key=True,
         nullable=False,
     )
-    upvote = db.Column(db.Boolean, nullable=False)
-    createdAt = db.Column(db.DateTime, nullable=False, server_default=db.FetchedValue())
 
     comment = db.relationship(
         "Comment",
@@ -33,7 +33,6 @@ class CommentVote(db.Model):
 class Comment(db.Model):
     __tablename__ = "comments"
 
-    id = db.Column(db.Integer, primary_key=True, server_default=db.FetchedValue())
     text = db.Column(db.String, nullable=False)
     userId = db.Column(db.ForeignKey("users.id", ondelete="CASCADE"), nullable=False)
     memeId = db.Column(db.ForeignKey("memes.id", ondelete="CASCADE"))
@@ -42,6 +41,7 @@ class Comment(db.Model):
     ratio = db.Column(db.Float(53), nullable=False, server_default=db.FetchedValue())
     createdAt = db.Column(db.DateTime, nullable=False, server_default=db.FetchedValue())
     updatedAt = db.Column(db.DateTime, nullable=False, server_default=db.FetchedValue())
+    id = db.Column(db.UUID, primary_key=True)
 
     meme = db.relationship(
         "Meme", primaryjoin="Comment.memeId == Meme.id", backref="comments"
@@ -93,7 +93,7 @@ class MemeVote(db.Model):
 class Meme(db.Model):
     __tablename__ = "memes"
 
-    id = db.Column(db.Integer, primary_key=True, server_default=db.FetchedValue())
+    id = db.Column(db.UUID, primary_key=True)
     isHive = db.Column(db.Boolean, nullable=False, server_default=db.FetchedValue())
     title = db.Column(db.String)
     url = db.Column(db.String, nullable=False, unique=True)
@@ -118,7 +118,7 @@ class Rank(db.Model):
     __tablename__ = "rank"
 
     createdAt = db.Column(db.DateTime, primary_key=True, nullable=False)
-    userId = db.Column(db.Integer, primary_key=True, nullable=False)
+    userId = db.Column(db.String, primary_key=True, nullable=False)
     rank = db.Column(db.Integer, nullable=False)
     totalPoints = db.Column(db.Integer, nullable=False)
 
@@ -236,8 +236,9 @@ class Redditor(db.Model):
 class User(db.Model):
     __tablename__ = "users"
 
-    id = db.Column(db.Integer, primary_key=True, server_default=db.FetchedValue())
+    id = db.Column(db.UUID, primary_key=True)
     isHive = db.Column(db.Boolean, nullable=False, server_default=db.FetchedValue())
+    verified = db.Column(db.Boolean, nullable=False, server_default=db.FetchedValue())
     email = db.Column(db.String, unique=True)
     username = db.Column(db.String, nullable=False, unique=True)
     avatar = db.Column(db.String, nullable=False, server_default=db.FetchedValue())

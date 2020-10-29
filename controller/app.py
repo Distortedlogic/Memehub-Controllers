@@ -34,5 +34,4 @@ def create_app(settings_override=None):
     app.config.from_object("config.flask")
     db.init_app(app)
     debug_toolbar.init_app(app)
-    print("app created")
     return app
