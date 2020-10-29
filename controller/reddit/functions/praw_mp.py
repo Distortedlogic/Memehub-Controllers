@@ -2,6 +2,7 @@ from datetime import datetime
 from json import loads
 
 from billiard import current_process
+from controller.generated.models import RedditMeme, db
 from decouple import config
 from praw import Reddit
 from praw.reddit import Submission

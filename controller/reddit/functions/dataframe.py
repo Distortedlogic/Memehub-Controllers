@@ -1,7 +1,8 @@
-import pandas as pd
-from numpy import log, e
 from statistics import stdev
 from time import time
+
+import pandas as pd
+from numpy import e, log
 
 
 def score_df(scoring):

@@ -63,6 +63,7 @@ class RedditController:
 
     def stream(self, subreddit: str, start_time: int, end_time: int):
         for id_iter in query_pushshift(subreddit, start_time, end_time):
+            print(cpu_count())
             with Pool(cpu_count(), initializer) as workers:
                 if self.verbose:
                     yield list(tqdm(workers.imap_unordered(praw_by_id, id_iter)))
@@ -94,9 +95,12 @@ class RedditController:
                     redditor = Redditor(username=meme["username"])
                     db.session.add(redditor)
                     db.session.commit()
-                db.session.add(
-                    RedditMeme(**meme, subreddit=sub, redditor_id=redditor.id)
-                )
+                try:
+                    meme = db.session.query(RedditMeme).filter_by(url=meme["url"]).one()
+                except:
+                    db.session.add(
+                        RedditMeme(**meme, subreddit=sub, redditor_id=redditor.id)
+                    )
             db.session.commit()
 
     def update(self, full: bool = False, verbose=None) -> None:

@@ -3,8 +3,15 @@ import os
 import random
 
 import arrow
-from controller.generated.models import Comment, CommentVote, Meme, MemeVote, User, db
-from controller.reddit import RedditMeme
+from controller.generated.models import (
+    Comment,
+    CommentVote,
+    Meme,
+    MemeVote,
+    RedditMeme,
+    User,
+    db,
+)
 from sqlalchemy import and_, func, not_
 
 from .utils import *

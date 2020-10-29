@@ -1,9 +1,9 @@
 import random
+import uuid
 
 import arrow
 import bcrypt
 from controller.generated.models import (
-    Clan,
     Comment,
     CommentVote,
     Follow,
@@ -37,11 +37,11 @@ def init_db():
     db.session.commit()
     db.session.query(User).delete()
     db.session.commit()
-    db.session.query(Clan).delete()
-    db.session.commit()
 
+    print(str(uuid.uuid4()))
     db.session.add(
         User(
+            id=str(uuid.uuid4()),
             username="jermeek",
             email="jermeek@gmail.com",
             createdAt=arrow.utcnow().shift(days=-40).naive,
@@ -53,6 +53,7 @@ def init_db():
     userId = db.session.query(User).first().id
     db.session.add(
         Meme(
+            id=uuid.uuid4(),
             userId=userId,
             url=fake.image_url(),
             createdAt=arrow.utcnow().shift(days=-40).naive,
@@ -62,6 +63,7 @@ def init_db():
     memeId = db.session.query(Meme).first().id
     db.session.add(
         Comment(
+            id=uuid.uuid4(),
             userId=userId,
             memeId=memeId,
             text="init",
@@ -79,6 +81,7 @@ def create_user(t1, t2):
     ):
         db.session.add(
             User(
+                id=uuid.uuid4(),
                 username=profile["username"],
                 email=profile["mail"],
                 createdAt=fake.date_time_between(t1.naive, t2.naive),
@@ -103,6 +106,7 @@ def follow_user(followerId, followingId, t1, t2):
 def post_meme(userId, url, t1, t2):
     db.session.add(
         Meme(
+            id=uuid.uuid4(),
             title=fake.text(max_nb_chars=50),
             community=random.choice(
                 [
@@ -140,6 +144,7 @@ def vote_meme(userId, memeId, t1, t2):
 def post_comment(userId, memeId, t1, t2):
     db.session.add(
         Comment(
+            id=uuid.uuid4(),
             userId=userId,
             memeId=memeId,
             text=fake.text(),
@@ -157,21 +162,6 @@ def vote_comment(userId, commentId, t1, t2):
             upvote=roll_dice(0.75),
         )
     )
-
-
-def create_clans(num):
-    for (userId,) in db.session.query(User.id).order_by(func.random()).limit(num):
-        name = fake.profile(fields=["username"])["username"]
-        db.session.add(Clan(**dict(creatorId=userId, name=name)))
-    db.session.commit()
-    for (clanId,) in db.session.query(Clan.id):
-        for user in (
-            db.session.query(User)
-            .filter(User.clanId == None)
-            .limit(random.randint(2, 5))
-        ):
-            user.clanId = clanId
-        db.session.commit()
 
 
 action_to_points = dict(

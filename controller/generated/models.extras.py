@@ -48,3 +48,11 @@
 #             "hu_score": self.hu_score,
 #             "lowest_ratio": self.lowest_ratio,
 #         }
+
+
+# follower = db.relationship(
+#     "User", primaryjoin="Follow.followerId == User.id", backref="following"
+# )
+# following = db.relationship(
+#     "User", primaryjoin="Follow.followingId == User.id", backref="followers"
+# )
