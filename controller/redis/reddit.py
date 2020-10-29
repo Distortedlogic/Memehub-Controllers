@@ -42,7 +42,6 @@ class RedditReDB:
         return [{"overview": self.overview}, {"top_month": self.top_month}]
 
     def update(self):
-        print("started")
         self.subreddit_list = FULL_SUB_LIST
         self.overview = {
             "totals": {"Daily": [], "Weekly": [], "Monthly": [], "Ever": []}
