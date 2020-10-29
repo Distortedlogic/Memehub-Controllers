@@ -1,7 +1,6 @@
 from celery.schedules import crontab
 from decouple import config
 
-DEBUG = False
 SECRET_KEY = config("SECRET_KEY")
 CELERY_BROKER_URL = "redis://redis:6379"
 CELERY_RESULT_BACKEND = "redis://redis:6379"
@@ -15,6 +14,11 @@ CELERYBEAT_SCHEDULE = {
         "schedule": crontab(minute=0, hour="*"),
     },
 }
+
+FLASK_RUN_PORT = config("FLASK_RUN_PORT")
+FLASK_APP = config("FLASK_APP")
+FLASK_ENV = config("FLASK_ENV")
+DEBUG = config("DEBUG")
 
 SQLALCHEMY_TRACK_MODIFICATIONS = False
 user = config("POSTGRES_USER")

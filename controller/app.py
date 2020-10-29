@@ -2,10 +2,11 @@ from celery import Celery
 from celery_singleton import Singleton
 from decouple import config
 from flask import Flask
+from flask_debugtoolbar import DebugToolbarExtension
 
 from controller.generated.models import db
 
-CELERY_TASK_LIST = ["controller.tasks"]
+debug_toolbar = DebugToolbarExtension()
 
 
 def create_celery_app(app=None):
@@ -13,7 +14,7 @@ def create_celery_app(app=None):
     celery = Celery(
         app.import_name,
         broker=app.config["CELERY_BROKER_URL"],
-        include=CELERY_TASK_LIST,
+        include=["controller.tasks"],
     )
     celery.conf.update(app.config)
 
@@ -32,4 +33,6 @@ def create_app(settings_override=None):
     app = Flask(__name__, instance_relative_config=True)
     app.config.from_object("config.flask")
     db.init_app(app)
+    debug_toolbar.init_app(app)
+    print("app created")
     return app

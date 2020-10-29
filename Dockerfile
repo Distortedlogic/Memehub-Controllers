@@ -7,11 +7,13 @@ RUN --mount=type=cache,target=/var/cache/apt \
 	&& rm -rf /var/lib/apt/lists/*
 WORKDIR $/app
 ENV PYTHONUNBUFFERED=1 \
+	PYTHONDONTWRITEBYTECODE=1 \
 	TERM=xterm \
 	TF_CPP_MIN_LOG_LEVEL=2 \
 	FLASK_RUN_PORT=8000 \
 	FLASK_APP=controller:APP \
-	FLASK_ENV=development
+	FLASK_ENV=development \
+	DEBUG=1 
 USER root
 COPY requirements.txt requirements.txt
 RUN --mount=type=cache,target=/root/.cache/pip pip install -r requirements.txt

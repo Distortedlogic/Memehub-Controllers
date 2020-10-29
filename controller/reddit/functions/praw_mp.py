@@ -63,20 +63,16 @@ def praw_by_id(submission_id):
 
 
 def extract_data(submission):
-    if submission.author and submission.author != "None":
-        try:
-            db.session.query(RedditMeme).filter_by(url=submission.url).one()
-        except:
-            return {
-                "reddit_id": submission.id,
-                "title": submission.title,
-                "username": str(submission.author),
-                "timestamp": submission.created_utc,
-                "created_at": datetime.fromtimestamp(submission.created_utc),
-                "url": submission.url,
-                "upvote_ratio": submission.upvote_ratio,
-                "upvotes": submission.score,
-                "downvotes": round(submission.score / submission.upvote_ratio)
-                - submission.score,
-                "num_comments": submission.num_comments,
-            }
+    return {
+        "reddit_id": submission.id,
+        "title": submission.title,
+        "username": str(submission.author),
+        "timestamp": submission.created_utc,
+        "created_at": datetime.fromtimestamp(submission.created_utc),
+        "url": submission.url,
+        "upvote_ratio": submission.upvote_ratio,
+        "upvotes": submission.score,
+        "downvotes": round(submission.score / submission.upvote_ratio)
+        - submission.score,
+        "num_comments": submission.num_comments,
+    }

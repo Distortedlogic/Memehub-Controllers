@@ -78,6 +78,9 @@ class RedditController:
             except:
                 print("empty data from reddit stream")
                 return
+            raw_memes = [
+                meme for meme in raw_memes if meme and meme["username"] != "None"
+            ]
             # if not self.full:
             #     raw_memes = self.get_features(raw_memes)
             for meme in raw_memes:
@@ -91,9 +94,12 @@ class RedditController:
                     redditor = Redditor(username=meme["username"])
                     db.session.add(redditor)
                     db.session.commit()
-                db.session.add(
-                    RedditMeme(**meme, subreddit=sub, redditor_id=redditor.id)
-                )
+                try:
+                    meme = db.session.query(RedditMeme).filter_by(url=meme["url"]).one()
+                except:
+                    db.session.add(
+                        RedditMeme(**meme, subreddit=sub, redditor_id=redditor.id)
+                    )
             db.session.commit()
 
     def update(self, full: bool = False, verbose=None) -> None:
