@@ -1,7 +1,7 @@
 # coding: utf-8
 from controller.reddit.functions.misc import dump_datetime
 from flask_sqlalchemy import SQLAlchemy
-from sqlalchemy.dialects.postgresql.base import DOUBLE_PRECISION
+from sqlalchemy.dialects.postgresql.base import DOUBLE_PRECISION, UUID
 
 db = SQLAlchemy()
 
@@ -41,7 +41,7 @@ class Comment(db.Model):
     ratio = db.Column(db.Float(53), nullable=False, server_default=db.FetchedValue())
     createdAt = db.Column(db.DateTime, nullable=False, server_default=db.FetchedValue())
     updatedAt = db.Column(db.DateTime, nullable=False, server_default=db.FetchedValue())
-    id = db.Column(db.UUID, primary_key=True)
+    id = db.Column(UUID, primary_key=True)
 
     meme = db.relationship(
         "Meme", primaryjoin="Comment.memeId == Meme.id", backref="comments"
@@ -93,7 +93,7 @@ class MemeVote(db.Model):
 class Meme(db.Model):
     __tablename__ = "memes"
 
-    id = db.Column(db.UUID, primary_key=True)
+    id = db.Column(UUID, primary_key=True)
     isHive = db.Column(db.Boolean, nullable=False, server_default=db.FetchedValue())
     title = db.Column(db.String)
     url = db.Column(db.String, nullable=False, unique=True)
@@ -236,7 +236,7 @@ class Redditor(db.Model):
 class User(db.Model):
     __tablename__ = "users"
 
-    id = db.Column(db.UUID, primary_key=True)
+    id = db.Column(UUID, primary_key=True)
     isHive = db.Column(db.Boolean, nullable=False, server_default=db.FetchedValue())
     verified = db.Column(db.Boolean, nullable=False, server_default=db.FetchedValue())
     email = db.Column(db.String, unique=True)
