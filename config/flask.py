@@ -15,10 +15,7 @@ CELERYBEAT_SCHEDULE = {
     },
 }
 
-FLASK_RUN_PORT = config("FLASK_RUN_PORT")
-FLASK_APP = config("FLASK_APP")
 FLASK_ENV = config("FLASK_ENV")
-DEBUG = config("DEBUG")
 
 SQLALCHEMY_TRACK_MODIFICATIONS = False
 user = config("POSTGRES_USER")
