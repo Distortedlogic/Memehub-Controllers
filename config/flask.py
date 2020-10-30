@@ -1,7 +1,8 @@
 from celery.schedules import crontab
 from decouple import config
+from get_docker_secret import get_docker_secret
 
-SECRET_KEY = config("SECRET_KEY")
+SECRET_KEY = get_docker_secret("SECRET_KEY", default=config("SECRET_KEY"))
 CELERY_BROKER_URL = "redis://redis:6379"
 CELERY_RESULT_BACKEND = "redis://redis:6379"
 CELERY_ACCEPT_CONTENT = ["json"]
@@ -15,10 +16,10 @@ CELERYBEAT_SCHEDULE = {
     },
 }
 
-FLASK_ENV = config("FLASK_ENV")
+FLASK_ENV = get_docker_secret("FLASK_ENV", default=config("FLASK_ENV"))
 
 SQLALCHEMY_TRACK_MODIFICATIONS = False
-user = config("POSTGRES_USER")
-password = config("POSTGRES_PASSWORD")
-db = config("POSTGRES_DB")
+user = get_docker_secret("POSTGRES_USER", default=config("POSTGRES_USER"))
+password = get_docker_secret("POSTGRES_PASSWORD", default=config("POSTGRES_PASSWORD"))
+db = get_docker_secret("POSTGRES_DB", default=config("POSTGRES_DB"))
 SQLALCHEMY_DATABASE_URI = f"postgresql://{user}:{password}@sitedata:5432/{db}"

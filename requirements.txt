@@ -171,6 +171,7 @@ celery-singleton == 0.3.0
 psaw == 0.0.12
 ml2rt == 0.2.0
 keras2onnx
+get-docker-secret == 1.0.1
 
 # not found by pigar
 gunicorn == 20.0.4
