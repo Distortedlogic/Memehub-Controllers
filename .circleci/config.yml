@@ -37,9 +37,6 @@ jobs:
       - run:
           name: Build Backend Docker Image
           command: docker build
-            --build-arg POSTGRES_USER=$POSTGRES_USER
-            --build-arg POSTGRES_PASSWORD=$POSTGRES_PASSWORD
-            --build-arg POSTGRES_PASSWORD=$POSTGRES_PASSWORD
             --build-arg SECRET_KEY=$SECRET_KEY
             --build-arg FLASK_ENV=$FLASK_ENV
             --build-arg reddit_oauth_0=$reddit_oauth_0
