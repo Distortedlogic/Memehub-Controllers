@@ -4,7 +4,7 @@ import pandas as pd
 from sqlalchemy import and_
 from sqlalchemy.orm import load_only
 
-from controller.constants import HOUR_TD, MONTH_TD
+from controller.constants import FULL_SUB_LIST, HOUR_TD, MONTH_TD
 from controller.generated.models import RedditMeme, RedditScore, db
 from controller.reddit.functions.database import (
     get_subs_to_scrape,
@@ -18,7 +18,7 @@ from controller.reddit.functions.misc import round_hour
 
 class RedditScorer:
     def update(self, interval=HOUR_TD, td=MONTH_TD):
-        for self.subreddit in get_subs_to_scrape():
+        for self.subreddit in FULL_SUB_LIST:
             meme_min_ts = redditmeme_min_ts(self.subreddit)
             meme_max_ts = redditmeme_max_ts(self.subreddit)
             score_max_ts = redditscore_max_ts(self.subreddit)
