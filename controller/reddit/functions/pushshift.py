@@ -1,20 +1,19 @@
 import json
 import time
-import requests
 
+import requests
 from controller.constants import PUSHSHIFT_URI
 
 
 def make_request(uri):
     current_tries = 0
-    while current_tries < 5:
+    while current_tries < 50:
         response = None
         try:
-            time.sleep(1)
             response = requests.get(uri)
             return json.loads(response.content)
         except Exception as e:
-            time.sleep(5)
+            time.sleep(current_tries)
             current_tries += 1
             print(e)
             if response:
