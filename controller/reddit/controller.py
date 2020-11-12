@@ -105,7 +105,7 @@ class RedditController:
     def update(self, full: bool = False, verbose=None) -> None:
         self.verbose = verbose if verbose else self.verbose
         self.full = full
-        self.now = round_hour_down(arrow.utcnow().timestamp)
+        self.now = arrow.utcnow().shift(days=-1).replace(second=0, minute=0).timestamp
         subs = FULL_SUB_LIST if full else get_subs_to_scrape()
         for sub in subs:
             if self.verbose:
