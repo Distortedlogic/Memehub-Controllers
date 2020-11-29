@@ -18,4 +18,3 @@ INPUT_SHAPE = (IMG_HEIGHT, IMG_WIDTH, IMG_CHANNEL)
 PUSHSHIFT_URI = r"https://api.pushshift.io/reddit/search/submission?subreddit={}&after={}&before={}&size={}"
 
 MODELS_REPO = "controller/stonks/models/"
-IMAGENET_REPO = "controller/stonks/not_a_meme/imagenet/images/"
