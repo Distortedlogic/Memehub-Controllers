@@ -1,12 +1,14 @@
+import numpy as np
 from celery import Celery
 from celery_singleton import Singleton
 from decouple import config
-from flask import Flask
-from flask_debugtoolbar import DebugToolbarExtension
+from flask import Flask, jsonify, request
+from redisai import Client
 
 from controller.generated.models import db
+from controller.utils.image_funcs import extract_img
 
-debug_toolbar = DebugToolbarExtension()
+num_to_name = {}
 
 
 def create_celery_app(app=None):
@@ -33,4 +35,14 @@ def create_app(settings_override=None):
     app = Flask(__name__, instance_relative_config=True)
     app.config.from_object("config.flask")
     db.init_app(app)
+    rai = Client(host="redis", port="6379")
+
+    @app.route("/meme_clf", methods=["POST"])
+    def meme_clf():
+        rai.tensorset(
+            "image", np.array([extract_img(request["data"]["url"])]).astype(np.float32),
+        )
+        rai.modelrun("meme_features", ["image"], ["features"])
+        return jsonify({"name": num_to_name[rai.tensorget("out")[0]]})
+
     return app

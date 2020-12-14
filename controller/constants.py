@@ -16,5 +16,3 @@ BATCH_SIZE = 32
 INPUT_SHAPE = (IMG_HEIGHT, IMG_WIDTH, IMG_CHANNEL)
 
 PUSHSHIFT_URI = r"https://api.pushshift.io/reddit/search/submission?subreddit={}&after={}&before={}&size={}"
-
-MODELS_REPO = "controller/stonks/models/"

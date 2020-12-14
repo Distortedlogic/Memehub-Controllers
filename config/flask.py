@@ -8,12 +8,12 @@ SECRET_KEY = get_docker_secret(
     "SECRET_KEY", default=config("SECRET_KEY"), autocast_name=False
 )
 CELERY_BROKER_URL = "redis://redis:6379"
-CELERY_RESULT_BACKEND = "redis://redis:6379"
-CELERY_ACCEPT_CONTENT = ["json"]
-CELERY_TASK_SERIALIZER = "json"
-CELERY_RESULT_SERIALIZER = "json"
-CELERY_REDIS_MAX_CONNECTIONS = 5
-CELERYBEAT_SCHEDULE = {
+result_backend = "redis://redis:6379"
+accept_content = ["json"]
+task_serializer = "json"
+result_serializer = "json"
+redis_max_connections = 5
+beat_schedule = {
     "reddit_memes_scrapper": {
         "task": "Reddit",
         "schedule": crontab(minute=0, hour="*"),

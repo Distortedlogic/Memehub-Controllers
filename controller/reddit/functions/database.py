@@ -5,52 +5,6 @@ from controller.generated.models import RedditMeme, RedditScore, db
 from sqlalchemy import and_
 
 
-def num_posts(subreddit: str, start: int, end: int) -> int:
-    try:
-        return (
-            db.session.query(RedditMeme)
-            .filter(
-                and_(
-                    start < RedditMeme.timestamp,
-                    RedditMeme.timestamp < end,
-                    RedditMeme.subreddit == subreddit,
-                )
-            )
-            .count()
-        )
-    except:
-        return 0
-
-
-def percent_change(subreddit: str, start: int, end: int) -> float:
-    try:
-        current = (
-            db.session.query(RedditMeme)
-            .filter(
-                and_(
-                    start < RedditMeme.timestamp,
-                    RedditMeme.timestamp < end,
-                    RedditMeme.subreddit == subreddit,
-                )
-            )
-            .count()
-        )
-        previous = (
-            db.session.query(RedditMeme)
-            .filter(
-                and_(
-                    (2 * start - end) < RedditMeme.timestamp,
-                    RedditMeme.timestamp < start,
-                    RedditMeme.subreddit == subreddit,
-                )
-            )
-            .count()
-        )
-        return round(100 * (current - previous) / previous, 2)
-    except:
-        return 0
-
-
 def redditmeme_min_ts(subreddit: str) -> int:
     try:
         min_ts = int(
@@ -97,20 +51,3 @@ def redditscore_max_ts(subreddit: str) -> int:
         return max_ts
     except:
         return 0
-
-
-def get_subs_to_scrape() -> List[str]:
-    try:
-        subs: List[str] = [
-            data[0]
-            for data in db.session.query(RedditMeme.subreddit)
-            .group_by(RedditMeme.subreddit)
-            .all()
-            if (
-                redditmeme_max_ts(data[0])
-                and redditmeme_max_ts(data[0]) > int(time.time() - 60 * 60 * 24)
-            )
-        ]
-        return subs
-    except:
-        raise Exception("no subs found")
