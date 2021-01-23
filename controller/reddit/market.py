@@ -18,8 +18,7 @@ def get_memes(limit):
 
 
 def classify_stonks(limit=1000):
-    memes = get_memes(limit)
-    while memes:
+    while (memes := get_memes(limit)) :
         for batch in np.array_split(memes, len(memes) // 100 + 1):
             rai.tensorset(
                 "images",
@@ -39,5 +38,4 @@ def classify_stonks(limit=1000):
                 if not meme.template:
                     meme.template = "not_found"
             db.session.commit()
-        memes = get_memes(limit)
 

@@ -1,14 +1,14 @@
 {
-  "include": ["src"],
+  "include": ["controller"],
 
-  "exclude": ["**/node_modules", "**/__pycache__", "src/typestubs"],
+  "exclude": ["**/node_modules", "**/__pycache__", "controller/typestubs"],
   "useLibraryCodeForTypes": true,
   "typeCheckingMode": "off",
-  "venvPath": "C:\\Users\\jerme\\anaconda3\\envs\\mmc",
+  "venvPath": "C:\\ProgramData\\Anaconda3\\envs\\mh",
 
   "reportMissingImports": true,
   "reportMissingTypeStubs": false,
 
-  "pythonVersion": "3.6",
+  "pythonVersion": "3.8",
   "pythonPlatform": "Linux"
 }

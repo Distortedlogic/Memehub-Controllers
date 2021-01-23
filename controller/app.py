@@ -31,7 +31,7 @@ def create_celery_app(app=None):
     return celery
 
 
-def create_app(settings_override=None):
+def create_app():
     app = Flask(__name__, instance_relative_config=True)
     app.config.from_object("config.flask")
     db.init_app(app)
