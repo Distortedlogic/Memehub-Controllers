@@ -1,6 +1,6 @@
 import arrow
 from billiard import Pool, cpu_count
-from controller.constants import FULL_SUB_LIST, THE_BEGINNING
+from controller.constants import FULL_SUB_LIST, get_beginning
 from controller.generated.models import RedditMeme, Redditor, db
 from controller.reddit.functions.database import redditmeme_max_ts
 from controller.reddit.functions.praw_mp import initializer, praw_by_id
@@ -23,7 +23,7 @@ def engine(sub, verbose):
     now = arrow.utcnow().shift(days=-1).replace(second=0, minute=0).timestamp
     max_ts = redditmeme_max_ts(sub)
     if not max_ts:
-        max_ts = THE_BEGINNING
+        max_ts = get_beginning()
     if verbose:
         print(sub)
     for raw_memes in stream(sub, max_ts, now, verbose):

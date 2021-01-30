@@ -1,22 +1,17 @@
-import numpy as np
 from celery import Celery
 from celery_singleton import Singleton
-from decouple import config
-from flask import Flask, jsonify, request
+from flask import Flask, jsonify
 from redisai import Client
 
 from controller.generated.models import db
-from controller.utils.image_funcs import extract_img
 
-num_to_name = {}
+TASK_LIST = ["controller.reddit.tasks"]
 
 
 def create_celery_app(app=None):
     app = app or create_app()
     celery = Celery(
-        app.import_name,
-        broker=app.config["CELERY_BROKER_URL"],
-        include=["controller.tasks"],
+        app.import_name, broker=app.config["CELERY_BROKER_URL"], include=TASK_LIST,
     )
     celery.conf.update(app.config)
 
@@ -39,10 +34,6 @@ def create_app():
 
     @app.route("/meme_clf", methods=["POST"])
     def meme_clf():
-        rai.tensorset(
-            "image", np.array([extract_img(request["data"]["url"])]).astype(np.float32),
-        )
-        rai.modelrun("meme_features", ["image"], ["features"])
-        return jsonify({"name": num_to_name[rai.tensorget("out")[0]]})
+        return jsonify({})
 
     return app
