@@ -100,8 +100,11 @@ ml2rt == 0.2.0
 boto3
 
 # not found by pigar
+sqlacodegen
+flask-sqlacodegen
 gunicorn == 20.0.4
 psycopg2-binary == 2.8.4
+flask-cors
 flower == 0.9.3
 lxml == 4.5.0
 Pillow == 7.1.2

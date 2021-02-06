@@ -10,7 +10,6 @@ from tqdm import tqdm
 
 def stream(sub: str, max_ts: int, now: int, verbose):
     for id_iter in query_pushshift(sub, max_ts, now):
-        print(f"pushift iter - {len(id_iter)}")
         with Pool(cpu_count(), initializer) as workers:
             if verbose:
                 memes = list(tqdm(workers.imap_unordered(praw_by_id, id_iter)))

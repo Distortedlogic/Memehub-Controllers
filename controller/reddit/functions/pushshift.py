@@ -1,6 +1,7 @@
 import json
 import time
 
+import arrow
 import requests
 from controller.constants import PUSHSHIFT_URI
 
@@ -39,4 +40,5 @@ def query_pushshift(subreddit, start_at, end_at):
             start_at = posts[-1]["created_utc"] - 10
             n = len(posts)
             collection.extend(posts)
-        yield list(map(lambda post: post["id"], collection))
+        ids = list(map(lambda post: post["id"], collection))
+        return ids

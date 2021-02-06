@@ -7,18 +7,18 @@ db = SQLAlchemy()
 
 
 class CommentVote(db.Model):
-    __tablename__ = "comment_vote"
+    __tablename__ = "comment_votes"
 
     userId = db.Column(
         db.ForeignKey("users.id", ondelete="CASCADE"), primary_key=True, nullable=False
     )
-    upvote = db.Column(db.Boolean, nullable=False)
-    createdAt = db.Column(db.DateTime, nullable=False, server_default=db.FetchedValue())
     commentId = db.Column(
         db.ForeignKey("comments.id", ondelete="CASCADE"),
         primary_key=True,
         nullable=False,
     )
+    upvote = db.Column(db.Boolean, nullable=False)
+    createdAt = db.Column(db.DateTime, nullable=False, server_default=db.FetchedValue())
 
     comment = db.relationship(
         "Comment",
@@ -33,7 +33,10 @@ class CommentVote(db.Model):
 class Comment(db.Model):
     __tablename__ = "comments"
 
+    id = db.Column(UUID, primary_key=True)
     text = db.Column(db.String, nullable=False)
+    isHive = db.Column(db.Boolean, nullable=False, server_default=db.FetchedValue())
+    permlink = db.Column(db.String)
     userId = db.Column(db.ForeignKey("users.id", ondelete="CASCADE"), nullable=False)
     memeId = db.Column(db.ForeignKey("memes.id", ondelete="CASCADE"))
     ups = db.Column(db.Integer, nullable=False, server_default=db.FetchedValue())
@@ -41,7 +44,6 @@ class Comment(db.Model):
     ratio = db.Column(db.Float(53), nullable=False, server_default=db.FetchedValue())
     createdAt = db.Column(db.DateTime, nullable=False, server_default=db.FetchedValue())
     updatedAt = db.Column(db.DateTime, nullable=False, server_default=db.FetchedValue())
-    id = db.Column(UUID, primary_key=True)
 
     meme = db.relationship(
         "Meme", primaryjoin="Comment.memeId == Meme.id", backref="comments"
@@ -49,6 +51,14 @@ class Comment(db.Model):
     user = db.relationship(
         "User", primaryjoin="Comment.userId == User.id", backref="comments"
     )
+
+
+class Emoji(db.Model):
+    __tablename__ = "emojis"
+
+    name = db.Column(db.String, primary_key=True)
+    url = db.Column(db.String, nullable=False)
+    createdAt = db.Column(db.DateTime, nullable=False, server_default=db.FetchedValue())
 
 
 class Follow(db.Model):
@@ -62,16 +72,16 @@ class Follow(db.Model):
     )
     createdAt = db.Column(db.DateTime, nullable=False, server_default=db.FetchedValue())
 
-    follower = db.relationship(
-        "User", primaryjoin="Follow.followerId == User.id", backref="following"
+    user = db.relationship(
+        "User", primaryjoin="Follow.followerId == User.id", backref="user_follows"
     )
-    following = db.relationship(
-        "User", primaryjoin="Follow.followingId == User.id", backref="followers"
+    user1 = db.relationship(
+        "User", primaryjoin="Follow.followingId == User.id", backref="user_follows_0"
     )
 
 
 class MemeVote(db.Model):
-    __tablename__ = "meme_vote"
+    __tablename__ = "meme_votes"
 
     userId = db.Column(
         db.ForeignKey("users.id", ondelete="CASCADE"), primary_key=True, nullable=False
@@ -99,7 +109,7 @@ class Meme(db.Model):
     url = db.Column(db.String, nullable=False, unique=True)
     userId = db.Column(db.ForeignKey("users.id", ondelete="CASCADE"), nullable=False)
     season = db.Column(db.Integer)
-    community = db.Column(db.String)
+    community = db.Column(db.String, nullable=False)
     numComments = db.Column(
         db.Integer, nullable=False, server_default=db.FetchedValue()
     )
@@ -108,10 +118,21 @@ class Meme(db.Model):
     ratio = db.Column(db.Float(53), nullable=False, server_default=db.FetchedValue())
     createdAt = db.Column(db.DateTime, nullable=False, server_default=db.FetchedValue())
     updatedAt = db.Column(db.DateTime, nullable=False, server_default=db.FetchedValue())
+    ocrText = db.Column(db.String)
+    stonk = db.Column(db.String)
+    version = db.Column(db.String)
 
     user = db.relationship(
         "User", primaryjoin="Meme.userId == User.id", backref="memes"
     )
+
+
+class Migration(db.Model):
+    __tablename__ = "migrations"
+
+    id = db.Column(db.Integer, primary_key=True, server_default=db.FetchedValue())
+    timestamp = db.Column(db.BigInteger, nullable=False)
+    name = db.Column(db.String, nullable=False)
 
 
 class Rank(db.Model):
@@ -119,6 +140,7 @@ class Rank(db.Model):
 
     createdAt = db.Column(db.DateTime, primary_key=True, nullable=False)
     userId = db.Column(db.String, primary_key=True, nullable=False)
+    timeFrame = db.Column(db.String, primary_key=True, nullable=False)
     rank = db.Column(db.Integer, nullable=False)
     totalPoints = db.Column(db.Integer, nullable=False)
 
@@ -242,7 +264,6 @@ class User(db.Model):
     email = db.Column(db.String, unique=True)
     username = db.Column(db.String, nullable=False, unique=True)
     avatar = db.Column(db.String, nullable=False, server_default=db.FetchedValue())
-    rankId = db.Column(db.Integer)
     createdAt = db.Column(db.DateTime, nullable=False, server_default=db.FetchedValue())
     updatedAt = db.Column(db.DateTime, nullable=False, server_default=db.FetchedValue())
     password = db.Column(db.String)
@@ -276,3 +297,4 @@ class User(db.Model):
     totalPoints = db.Column(
         db.Integer, nullable=False, server_default=db.FetchedValue()
     )
+
