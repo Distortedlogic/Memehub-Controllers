@@ -1,5 +1,3 @@
-from glob import glob
-
 bind = "0.0.0.0:8000"
 accesslog = "-"
 access_log_format = (
@@ -7,5 +5,4 @@ access_log_format = (
 )
 log_level = "info"
 reload = True
-reload_extra_file = glob("controller/**/*.py")
 workers = 1

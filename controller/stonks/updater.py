@@ -2,10 +2,9 @@ import json
 
 import numpy as np
 import redisai
-import requests
 from controller.constants import STATIC_PATH, VERSION
 from controller.generated.models import Meme, db
-from PIL import Image
+from controller.utils.model_func import load_img_from_url
 from sqlalchemy import or_
 
 
@@ -20,16 +19,12 @@ def update():
         .limit(100)
         .all()
     ):
-        images = []
-        for meme in memes:
-            raw = requests.get(meme.url, stream=True).raw
-            image = Image.open(raw).resize((224, 224)).convert("RGB")
-            arr = np.array(image, dtype=np.float32)
-            rolled_channels = np.rollaxis(arr, 2, 0)
-            images.append(rolled_channels)
-        images = np.array(images, dtype=np.float32)
-        rai.tensorset("images", images)
+        images = [load_img_from_url(meme.url) for meme in memes]
+        rai.tensorset("images", np.array(images, dtype=np.float32))
         rai.modelrun("MemeClf", ["images"], ["out"])
-        pred = [static["num_name"][str(num)] for num in rai.tensorget("out")]
+        names = (static["num_name"][str(num)] for num in rai.tensorget("out"))
+        for meme, name in zip(memes, names):
+            meme.stonk = name
+            meme.version = VERSION
         print(pred)
         break

@@ -1,18 +1,26 @@
 import json
-import os
 from pathlib import Path
 
 import boto3
+import click
 import ml2rt
 import redisai
 from botocore.exceptions import ClientError
-from controller.constants import MODEL_REPO, STATIC_PATH
 from decouple import config
 from tqdm import tqdm
+
+VERSION = "0.1.0"
+
+MODEL_REPO = f"{VERSION}/jit/"
+Path(MODEL_REPO).mkdir(parents=True, exist_ok=True)
+STATIC_PATH = f"{VERSION}/static.json"
 
 s3 = boto3.client(
     "s3", aws_access_key_id=config("AWS_ID"), aws_secret_access_key=config("AWS_KEY"),
 )
+
+device = "CPU"
+backend = "torch"
 
 
 def download_aws(path):
@@ -33,22 +41,39 @@ def download_from_aws():
     return static
 
 
-def load_base_to_redisai(device="CPU", backend="torch"):
+@click.group()
+def cli():
+    """ Run Imgflip Related Scripts"""
+    pass
+
+
+@click.command()
+def base():
+    """
+    Load models into redisai
+    """
     download_aws(MODEL_REPO + "features.pt")
     download_aws(MODEL_REPO + "MemeClf.pt")
+    download_aws(MODEL_REPO + "dense.pt")
     rai = redisai.Client(host="redis", port="6379")
     model = ml2rt.load_model(MODEL_REPO + f"features.pt")
     rai.modelset("features", backend, device, model)
     model = ml2rt.load_model(MODEL_REPO + f"MemeClf.pt")
     rai.modelset("MemeClf", backend, device, model)
+    # model = ml2rt.load_model(MODEL_REPO + f"dense.pt")
+    # rai.modelset("dense", backend, device, model)
     print("Base Loaded")
 
+    return None
 
-def load_stonks_to_redisai(device="CPU", backend="torch"):
+
+@click.command()
+def stonks():
+    """
+    Load models into redisai
+    """
     static = download_from_aws()
-    print("AWS Download Complete")
     rai = redisai.Client(host="redis", port="6379")
-    print("loaded_models", rai.modelscan())
     names_to_load = [
         name
         for name in static["names"]
@@ -57,3 +82,9 @@ def load_stonks_to_redisai(device="CPU", backend="torch"):
     for name in tqdm(names_to_load, total=len(names_to_load)):
         model = ml2rt.load_model(MODEL_REPO + f"{name}.pt")
         rai.modelset(name, backend, device, model)
+
+    return None
+
+
+cli.add_command(base)
+cli.add_command(stonks)
