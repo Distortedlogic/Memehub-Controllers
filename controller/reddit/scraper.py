@@ -1,20 +1,50 @@
+import json
+import time
+
 import arrow
+import requests
 from billiard import Pool, cpu_count
-from controller.constants import FULL_SUB_LIST, get_beginning
+from controller.constants import FULL_SUB_LIST, PUSHSHIFT_URI, get_beginning
 from controller.generated.models import RedditMeme, Redditor, db
 from controller.reddit.functions.database import redditmeme_max_ts
 from controller.reddit.functions.praw_mp import initializer, praw_by_id
-from controller.reddit.functions.pushshift import query_pushshift
+from retry import retry
 from tqdm import tqdm
 
 
+@retry(tries=5, delay=2)
+def make_request(uri):
+    with requests.get(uri) as resp:
+        return json.loads(resp.content)
+
+
+def query_pushshift(subreddit, start_at, end_at):
+    SIZE = 100
+    n = SIZE
+    while n == SIZE:
+        collection = []
+        while n == SIZE and len(collection) < 1000:
+            url = PUSHSHIFT_URI.format(subreddit, start_at, end_at, SIZE)
+            raw = make_request(url)
+            if not raw:
+                break
+            posts = raw["data"]
+            if not posts:
+                break
+            start_at = posts[-1]["created_utc"] - 10
+            n = len(posts)
+            collection.extend(posts)
+        ids = list(map(lambda post: post["id"], collection))
+        return ids
+
+
 def stream(sub: str, max_ts: int, now: int, verbose):
-    for id_iter in query_pushshift(sub, max_ts, now):
+    while ids := query_pushshift(sub, max_ts, now):
         with Pool(cpu_count(), initializer) as workers:
             if verbose:
-                memes = list(tqdm(workers.imap_unordered(praw_by_id, id_iter)))
+                memes = list(tqdm(workers.imap_unordered(praw_by_id, ids)))
             else:
-                memes = list(workers.imap_unordered(praw_by_id, id_iter))
+                memes = list(workers.imap_unordered(praw_by_id, ids))
         yield [meme for meme in memes if meme and meme["username"] != "None"]
 
 
@@ -26,6 +56,7 @@ def engine(sub, verbose):
     if verbose:
         print(sub)
     for raw_memes in stream(sub, max_ts, now, verbose):
+        print("got reddit memes")
         for meme in raw_memes:
             try:
                 redditor = (

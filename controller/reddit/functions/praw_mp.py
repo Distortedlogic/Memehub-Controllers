@@ -1,3 +1,4 @@
+import random
 from datetime import datetime
 from json import loads
 
@@ -25,13 +26,7 @@ reddit_objs = [init_reddit(i) for i in range(8)]
 
 
 def initializer():
-    try:
-        pid = current_process().name.split("-", 1)[1].split(":", 1)[1]
-        process_id = (int(pid) - 1) % NUM_REDDIT_INSTANCES
-    except:
-        pid = current_process().name.split("-", 1)[1]
-        process_id = (int(pid) - 1) % NUM_REDDIT_INSTANCES
-    worker_id = process_id
+    worker_id = random.choice(range(NUM_REDDIT_INSTANCES))
     global reddit
     tries = 0
     while True:
