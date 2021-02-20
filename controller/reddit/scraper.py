@@ -25,21 +25,19 @@ def query_pushshift(subreddit, start_at, end_at):
         collection = []
         while n == SIZE and len(collection) < 1000:
             url = PUSHSHIFT_URI.format(subreddit, start_at, end_at, SIZE)
-            raw = make_request(url)
-            if not raw:
+            if not (raw := make_request(url)):
                 break
-            posts = raw["data"]
-            if not posts:
+            if not (posts := raw["data"]):
                 break
             start_at = posts[-1]["created_utc"] - 10
             n = len(posts)
             collection.extend(posts)
-        ids = list(map(lambda post: post["id"], collection))
-        return ids
+        yield list(map(lambda post: post["id"], collection))
 
 
 def stream(sub: str, max_ts: int, now: int, verbose):
-    while ids := query_pushshift(sub, max_ts, now):
+    prev_ids = []
+    for ids in query_pushshift(sub, max_ts, now):
         with Pool(cpu_count(), initializer) as workers:
             if verbose:
                 memes = list(tqdm(workers.imap_unordered(praw_by_id, ids)))
@@ -53,10 +51,9 @@ def engine(sub, verbose):
     max_ts = redditmeme_max_ts(sub)
     if not max_ts:
         max_ts = get_beginning()
-    if verbose:
-        print(sub)
+    print(sub)
     for raw_memes in stream(sub, max_ts, now, verbose):
-        print("got reddit memes")
+        print(arrow.get(max(meme["timestamp"] for meme in raw_memes)).format())
         for meme in raw_memes:
             try:
                 redditor = (
