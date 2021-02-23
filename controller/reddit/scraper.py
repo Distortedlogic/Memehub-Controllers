@@ -6,7 +6,7 @@ import requests
 from billiard import Pool, cpu_count
 from controller.constants import FULL_SUB_LIST, PUSHSHIFT_URI, get_beginning
 from controller.generated.models import RedditMeme, Redditor, db
-from controller.reddit.functions.database import redditmeme_max_ts
+from controller.reddit.functions.database import redditmeme_max_ts, redditmeme_min_ts
 from controller.reddit.functions.praw_mp import initializer, praw_by_id
 from retry import retry
 from tqdm import tqdm
@@ -46,14 +46,8 @@ def stream(sub: str, max_ts: int, now: int, verbose):
         yield [meme for meme in memes if meme and meme["username"] != "None"]
 
 
-def engine(sub, verbose):
-    now = arrow.utcnow().shift(days=-1).replace(second=0, minute=0).timestamp
-    max_ts = redditmeme_max_ts(sub)
-    if not max_ts:
-        max_ts = get_beginning()
-    print(sub)
+def engine(sub, max_ts, now, verbose):
     for raw_memes in stream(sub, max_ts, now, verbose):
-        print(arrow.get(max(meme["timestamp"] for meme in raw_memes)).format())
         for meme in raw_memes:
             try:
                 redditor = (
@@ -76,4 +70,15 @@ def engine(sub, verbose):
 
 def scrape_reddit_memes(verbose=False):
     for sub in FULL_SUB_LIST:
-        engine(sub, verbose=verbose)
+        now = arrow.utcnow().shift(days=-1).replace(second=0, minute=0).timestamp
+        if not (max_ts := redditmeme_max_ts(sub)):
+            max_ts = get_beginning()
+        engine(sub, max_ts, now, verbose=verbose)
+
+
+def scrape_reddit_memes_backwards(verbose=False):
+    for sub in FULL_SUB_LIST:
+        print(sub) if verbose else None
+        if not (min_ts := redditmeme_min_ts(sub)):
+            min_ts = get_beginning()
+        engine(sub, min_ts - 60 * 60 * 24 * 30, min_ts, verbose=verbose)

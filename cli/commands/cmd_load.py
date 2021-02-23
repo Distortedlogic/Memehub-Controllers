@@ -9,7 +9,7 @@ from botocore.exceptions import ClientError
 from decouple import config
 from tqdm import tqdm
 
-VERSION = "0.1.0"
+VERSION = "0.1.1"
 
 MODEL_REPO = f"{VERSION}/jit/"
 Path(MODEL_REPO).mkdir(parents=True, exist_ok=True)
@@ -60,8 +60,8 @@ def base():
     rai.modelset("features", backend, device, model)
     model = ml2rt.load_model(MODEL_REPO + f"MemeClf.pt")
     rai.modelset("MemeClf", backend, device, model)
-    # model = ml2rt.load_model(MODEL_REPO + f"dense.pt")
-    # rai.modelset("dense", backend, device, model)
+    model = ml2rt.load_model(MODEL_REPO + f"dense.pt")
+    rai.modelset("dense", backend, device, model)
     print("Base Loaded")
 
     return None
@@ -74,14 +74,13 @@ def stonks():
     """
     static = download_from_aws()
     rai = redisai.Client(host="redis", port="6379")
-    names_to_load = [
-        name
-        for name in static["names"]
-        if name not in [data[0] for data in rai.modelscan()]
-    ]
-    for name in tqdm(names_to_load, total=len(names_to_load)):
+    current_stonks = [data[0] for data in rai.modelscan()]
+    names_to_load = [name for name in static["names"] if name not in current_stonks]
+    for idx, name in enumerate(names_to_load):
+        print(f"{idx}/{len(names_to_load)} - {name}")
         model = ml2rt.load_model(MODEL_REPO + f"{name}.pt")
         rai.modelset(name, backend, device, model)
+    print("Stonks Loaded")
 
     return None
 

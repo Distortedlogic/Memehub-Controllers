@@ -16,3 +16,16 @@ services:
     command: celery -A controller.CELERY worker -B -l info
     volumes:
       - .:/app
+  notebook:
+    build:
+        context: .
+        dockerfile: Dockerfile.jupyter
+    container_name: notebook
+    restart: on-failure
+    command: jupyter lab
+    volumes:
+        - .:/notebooks
+    environment:
+      - JUPYTER_TOKEN=password
+    ports:
+      - 8889:8888

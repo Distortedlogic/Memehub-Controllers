@@ -1,7 +1,7 @@
 # coding: utf-8
 from controller.reddit.functions.misc import dump_datetime
 from flask_sqlalchemy import SQLAlchemy
-from sqlalchemy.dialects.postgresql.base import DOUBLE_PRECISION, UUID
+from sqlalchemy.dialects.postgresql.base import UUID
 
 db = SQLAlchemy()
 
@@ -155,16 +155,19 @@ class RedditMeme(db.Model):
     title = db.Column(db.String(500), nullable=False)
     url = db.Column(db.String(1000), nullable=False)
     meme_text = db.Column(db.String(1000000))
-    template = db.Column(db.String(100))
     timestamp = db.Column(db.Integer, nullable=False)
     created_at = db.Column(db.DateTime, nullable=False)
     upvote_ratio = db.Column(db.Float(53), nullable=False)
     upvotes = db.Column(db.Integer, nullable=False)
     downvotes = db.Column(db.Integer, nullable=False)
     num_comments = db.Column(db.Integer, nullable=False)
-    features = db.Column(db.ARRAY(DOUBLE_PRECISION(precision=53)))
     redditor_id = db.Column(db.Integer)
     redditorId = db.Column(db.ForeignKey("redditors.id"))
+    version = db.Column(db.String(20))
+    meme_clf = db.Column(db.String(100))
+    meme_clf_correct = db.Column(db.Boolean)
+    stonk = db.Column(db.Boolean)
+    stonk_correct = db.Column(db.Boolean)
 
     redditor = db.relationship(
         "Redditor",

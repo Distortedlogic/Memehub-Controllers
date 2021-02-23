@@ -2,7 +2,7 @@ from pathlib import Path
 
 import arrow
 
-VERSION = "0.1.0"
+VERSION = "0.1.1"
 MODEL_REPO = f"{VERSION}/jit/"
 Path(MODEL_REPO).mkdir(parents=True, exist_ok=True)
 STATIC_PATH = f"{VERSION}/static.json"
@@ -17,6 +17,6 @@ def get_beginning():
     return arrow.utcnow().shift(days=-31).replace(hour=0, minute=0, second=0).timestamp
 
 
-FULL_SUB_LIST = ["dankmemes"]
+FULL_SUB_LIST = ["dankmemes", "memes"]
 
 PUSHSHIFT_URI = r"https://api.pushshift.io/reddit/search/submission?subreddit={}&after={}&before={}&size={}"
