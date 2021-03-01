@@ -18,6 +18,7 @@ from matplotlib.pyplot import imshow
 from PIL import Image
 from redisai import Client
 from sqlalchemy import and_, func
+from sqlalchemy.sql.elements import or_
 from torch.utils.data import DataLoader
 from torch.utils.data.dataset import IterableDataset
 from torchvision import transforms
@@ -37,7 +38,7 @@ class RedditSet(IterableDataset):
         self.bad_images = 0
         self.q = (
             db.session.query(RedditMeme)
-            .filter(RedditMeme.meme_clf == None)
+            .filter(or_(RedditMeme.version == None, RedditMeme.version != VERSION))
             .order_by(RedditMeme.created_at.desc())
         )
 
@@ -47,70 +48,92 @@ class RedditSet(IterableDataset):
                 image = load_img_from_url(meme.url)
                 yield (image, meme.id)
             except:
-                self.bad_images += 1
-                print("bad images", self.bad_images)
-        # yield from ((load_img_from_url(meme.url), meme.id) for meme in self.q)
+                db.session.delete(meme)
 
     def count(self):
         return self.q.count()
 
 
+def display_meme(meme):
+    try:
+        image = transforms.ToPILImage()(load_img_from_url(meme.url))
+    except:
+        db.session.delete(meme)
+        return
+    clear_output()
+    print(
+        f"""num correct - {db.session.query(RedditMeme).filter(and_(
+                RedditMeme.version == VERSION,
+                RedditMeme.stonk_correct == True,
+            )).count()}"""
+    )
+    print(
+        f"""num wrong - {db.session.query(RedditMeme).filter(and_(
+                RedditMeme.version == VERSION,
+                RedditMeme.stonk_correct == False,
+            )).count()}"""
+    )
+    print(meme.meme_clf)
+    print(meme.stonk)
+    try:
+        object = bucket.Object("memehub/templates/" + meme.meme_clf)
+        response = object.get()
+        file_stream = response["Body"]
+        template = Image.open(file_stream)
+        print("Meme/Template")
+        display(image, template)
+    except Exception as e:
+        display(image)
+
+
+def handle_keypress(meme, prev_id):
+    if (keypress := input("hit enter for next image -- q to break -- k to kill")) == "":
+        meme.meme_clf_correct = True
+        meme.stonk_correct = True
+    elif keypress == "n":
+        meme.meme_clf_correct = False
+        meme.stonk_correct = False
+    elif "gb" in keypress:
+        if "n" in keypress:
+            meme.meme_clf_correct = False
+            meme.stonk_correct = False
+        if prev_id:
+            prev_meme = db.session.query(RedditMeme).filter_by(id=prev_id).first()
+            display(transforms.ToPILImage()(load_img_from_url(prev_meme.url)))
+            handle_keypress(prev_meme, None)
+    elif keypress == "q":
+        return True
+    db.session.commit()
+
+
 def audit_reddit_stonks():
-    rai = Client(host="redis", port="6379")
-    dataset = RedditSet()
-    bad_templates = []
+    prev_id = None
     with open(STATIC_PATH, "rb") as f:
         static = json.load(f)
-    for round, (images, ids) in enumerate(
-        DataLoader(dataset, batch_size=128, num_workers=0)  # cpu_count()
-    ):
-        rai.tensorset("images", np.array(images).astype(np.float32))
-        rai.modelrun("features", "images", "features_out")
-        rai.modelrun("dense", ["features_out"], ["dense_out"])
-        names = [
-            static["num_name"][str(np.argmax(arr))]
-            for arr in rai.tensorget("dense_out")
-        ]
-        for name in list(set(names)):
-            rai.modelrun(name, ["features_out"], [f"{name}_out"])
-        for idx, (id, image, name) in enumerate(
-            zip(ids.numpy().astype(int).tolist(), images, names)
+    for name in static["names"]:
+        for meme in db.session.query(RedditMeme).filter(
+            and_(
+                RedditMeme.meme_clf == name,
+                RedditMeme.stonk == True,
+                RedditMeme.version == VERSION,
+                RedditMeme.stonk_correct == None,
+            )
         ):
-            meme = db.session.query(RedditMeme).filter_by(id=id).first()
-            is_stonk = np.round(rai.tensorget(f"{name}_out")[idx]).astype(bool)
-            clear_output()
-            print(name)
-            print(np.round(is_stonk).astype(bool))
-            print("Meme")
-            display(transforms.ToPILImage()(image))
-            try:
-                object = bucket.Object("memehub/templates/" + name)
-                response = object.get()
-                file_stream = response["Body"]
-                im = Image.open(file_stream)
-                print("Template")
-                display(im)
-            except Exception as e:
-                bad_templates.append(name)
-            finally:
-                pass
-            print(bad_templates)
-            if (
-                keypress := input("hit enter for next image -- q to break -- k to kill")
-            ) in "qk" and keypress:
+            display_meme(meme)
+            if handle_keypress(meme, prev_id):
                 break
+            prev_id = meme.id
 
 
 def reddit_stonks():
+    start = time()
     rai = Client(host="redis", port="6379")
     dataset = RedditSet()
-    bad_templates = []
     with open(STATIC_PATH, "rb") as f:
         static = json.load(f)
     for round, (images, ids) in enumerate(
         DataLoader(dataset, batch_size=128, num_workers=0)  # cpu_count()
     ):
-        now = time()
         rai.tensorset("images", np.array(images).astype(np.float32))
         rai.modelrun("features", "images", "features_out")
         rai.modelrun("dense", ["features_out"], ["dense_out"])
@@ -127,7 +150,7 @@ def reddit_stonks():
             meme.stonk = is_stonk
             meme.version = VERSION
         db.session.commit()
-        if round % 10 == 0:
+        if round % 100 == 0:
             clear_output()
             memes_done = (
                 db.session.query(RedditMeme).filter(RedditMeme.version != None).count()
@@ -138,11 +161,11 @@ def reddit_stonks():
             )
             print(f"memes_found - {memes_found}")
             print(f"round - {round}")
-            round_time = int(time() - now)
+            uptime = int(time() - start)
             count = dataset.count()
-            print(f"round time - {secondsToText(round_time)}")
+            print(f"round time - {secondsToText(uptime)}")
             print(f"num left - {count}")
-            print(f"ETA - {secondsToText(round_time*count)}")
+            print(f"ETA - {secondsToText(uptime*count)}")
 
 
 def print_market():
@@ -152,7 +175,7 @@ def print_market():
             func.count(RedditMeme.meme_clf).label("num_posts"),
             func.sum(RedditMeme.upvotes).label("total_upvotes"),
         )
-        .filter(RedditMeme.stonk == True)
+        .filter(and_(RedditMeme.stonk == True, RedditMeme.version == VERSION))
         .group_by(RedditMeme.meme_clf)
         .order_by(func.count(RedditMeme.meme_clf).desc())
         .statement,
@@ -163,4 +186,3 @@ def print_market():
     )
     with pd.option_context("display.max_rows", None, "display.max_columns", None):
         IPython.display.display(df)
-    print(df["name"].tolist())

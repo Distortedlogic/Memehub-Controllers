@@ -2,7 +2,7 @@ from pathlib import Path
 
 import arrow
 
-VERSION = "0.1.1"
+VERSION = "0.2.0"
 MODEL_REPO = f"{VERSION}/jit/"
 Path(MODEL_REPO).mkdir(parents=True, exist_ok=True)
 STATIC_PATH = f"{VERSION}/static.json"
