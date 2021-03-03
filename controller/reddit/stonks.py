@@ -186,3 +186,4 @@ def print_market():
     )
     with pd.option_context("display.max_rows", None, "display.max_columns", None):
         IPython.display.display(df)
+    print(df["name"].tolist())
