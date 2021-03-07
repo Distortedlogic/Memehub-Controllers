@@ -38,7 +38,7 @@ class RedditSet(IterableDataset):
         self.bad_images = 0
         self.q = (
             db.session.query(RedditMeme)
-            .filter(or_(RedditMeme.version == None, RedditMeme.version != VERSION))
+            .filter(RedditMeme.version == None)
             .order_by(RedditMeme.created_at.desc())
         )
 
@@ -86,7 +86,7 @@ def display_meme(meme):
         display(image)
 
 
-def handle_keypress(meme, prev_id):
+def handle_keypress_audit(meme, prev_id):
     if (keypress := input("hit enter for next image -- q to break -- k to kill")) == "":
         meme.meme_clf_correct = True
         meme.stonk_correct = True
@@ -97,10 +97,13 @@ def handle_keypress(meme, prev_id):
         if "n" in keypress:
             meme.meme_clf_correct = False
             meme.stonk_correct = False
+        else:
+            meme.meme_clf_correct = True
+            meme.stonk_correct = True
         if prev_id:
             prev_meme = db.session.query(RedditMeme).filter_by(id=prev_id).first()
             display(transforms.ToPILImage()(load_img_from_url(prev_meme.url)))
-            handle_keypress(prev_meme, None)
+            handle_keypress_audit(prev_meme, None)
     elif keypress == "q":
         return True
     db.session.commit()
@@ -110,7 +113,8 @@ def audit_reddit_stonks():
     prev_id = None
     with open(STATIC_PATH, "rb") as f:
         static = json.load(f)
-    for name in static["names"]:
+    folder_count_df = pd.DataFrame(static["folder_count"], columns=["name", "count"])
+    for name in folder_count_df.sort_values("count")["name"]:
         for meme in db.session.query(RedditMeme).filter(
             and_(
                 RedditMeme.meme_clf == name,
@@ -120,19 +124,69 @@ def audit_reddit_stonks():
             )
         ):
             display_meme(meme)
-            if handle_keypress(meme, prev_id):
+            if handle_keypress_audit(meme, prev_id):
+                break
+            prev_id = meme.id
+
+
+def handle_keypress_is_template(meme, prev_id):
+    if (keypress := input("hit enter for next image -- q to break -- k to kill")) == "":
+        meme.is_template = False
+    elif keypress == "n":
+        meme.is_template = True
+    elif keypress == "y":
+        meme.stonk = True
+        meme.stonk_correct = True
+        meme.meme_clf_correct = True
+    elif "gb" in keypress:
+        if "n" in keypress:
+            meme.is_template = True
+        else:
+            meme.is_template = False
+        if "y" in keypress:
+            meme.stonk = True
+            meme.stonk_correct = True
+            meme.meme_clf_correct = True
+        if prev_id:
+            prev_meme = db.session.query(RedditMeme).filter_by(id=prev_id).first()
+            display(transforms.ToPILImage()(load_img_from_url(prev_meme.url)))
+            handle_keypress_is_template(prev_meme, None)
+    elif keypress == "q":
+        return True
+    db.session.commit()
+
+
+def audit_is_template():
+    prev_id = None
+    with open(STATIC_PATH, "rb") as f:
+        static = json.load(f)
+    folder_count_df = pd.DataFrame(
+        static["folder_count"].items(), columns=["name", "count"]
+    )
+    for name in folder_count_df.sort_values("count")["name"]:
+        for meme in db.session.query(RedditMeme).filter(
+            and_(
+                RedditMeme.meme_clf == name,
+                RedditMeme.is_template == None,
+                RedditMeme.stonk_correct == False
+                # or_(RedditMeme.stonk == False, RedditMeme.stonk_correct == False),
+            )
+        ):
+            display_meme(meme)
+            if handle_keypress_is_template(meme, prev_id):
                 break
             prev_id = meme.id
 
 
 def reddit_stonks():
+    batch_size = 128
     start = time()
     rai = Client(host="redis", port="6379")
     dataset = RedditSet()
     with open(STATIC_PATH, "rb") as f:
         static = json.load(f)
     for round, (images, ids) in enumerate(
-        DataLoader(dataset, batch_size=128, num_workers=0)  # cpu_count()
+        DataLoader(dataset, batch_size=batch_size, num_workers=0)  # cpu_count()
     ):
         rai.tensorset("images", np.array(images).astype(np.float32))
         rai.modelrun("features", "images", "features_out")
@@ -150,7 +204,7 @@ def reddit_stonks():
             meme.stonk = is_stonk
             meme.version = VERSION
         db.session.commit()
-        if round % 100 == 0:
+        if round % 10 == 0:
             clear_output()
             memes_done = (
                 db.session.query(RedditMeme).filter(RedditMeme.version != None).count()
@@ -163,9 +217,9 @@ def reddit_stonks():
             print(f"round - {round}")
             uptime = int(time() - start)
             count = dataset.count()
-            print(f"round time - {secondsToText(uptime)}")
+            print(f"uptime - {secondsToText(uptime)}")
             print(f"num left - {count}")
-            print(f"ETA - {secondsToText(uptime*count)}")
+            print(f"ETA - {secondsToText(uptime*count//((round+1)*batch_size))}")
 
 
 def print_market():

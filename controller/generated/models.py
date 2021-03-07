@@ -106,7 +106,7 @@ class Meme(db.Model):
     id = db.Column(UUID, primary_key=True)
     isHive = db.Column(db.Boolean, nullable=False, server_default=db.FetchedValue())
     title = db.Column(db.String)
-    url = db.Column(db.String, nullable=False, unique=True)
+    url = db.Column(db.String, nullable=False)
     userId = db.Column(db.ForeignKey("users.id", ondelete="CASCADE"), nullable=False)
     season = db.Column(db.Integer)
     community = db.Column(db.String, nullable=False)
@@ -168,6 +168,7 @@ class RedditMeme(db.Model):
     meme_clf_correct = db.Column(db.Boolean)
     stonk = db.Column(db.Boolean)
     stonk_correct = db.Column(db.Boolean)
+    is_template = db.Column(db.Boolean)
 
     redditor = db.relationship(
         "Redditor",
