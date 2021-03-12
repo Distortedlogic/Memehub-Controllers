@@ -1,9 +1,11 @@
 # coding: utf-8
+from typing import Any, Dict
+
 from controller.reddit.functions.misc import dump_datetime
 from flask_sqlalchemy import SQLAlchemy
 from sqlalchemy.dialects.postgresql.base import UUID
 
-db = SQLAlchemy()
+db: Any = SQLAlchemy()
 
 
 class CommentVote(db.Model):
@@ -17,7 +19,7 @@ class CommentVote(db.Model):
         primary_key=True,
         nullable=False,
     )
-    upvote = db.Column(db.Boolean, nullable=False)
+    upvote: bool = db.Column(db.Boolean, nullable=False)
     createdAt = db.Column(db.DateTime, nullable=False, server_default=db.FetchedValue())
 
     comment = db.relationship(
@@ -177,7 +179,7 @@ class RedditMeme(db.Model):
     )
 
     @property
-    def serialize(self):
+    def serialize(self) -> Dict[str, Any]:
         return {
             "reddit_id": self.reddit_id,
             "subreddit": self.subreddit,

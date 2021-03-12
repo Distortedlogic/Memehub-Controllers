@@ -1,9 +1,11 @@
-import numpy as np
+from typing import Callable
+
 import requests
 from PIL import Image
+from torch import Tensor
 from torchvision import transforms
 
-transformations = transforms.Compose(
+transformations: Callable[..., Tensor] = transforms.Compose(
     [
         transforms.ToTensor(),
         # transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]),
@@ -11,7 +13,7 @@ transformations = transforms.Compose(
 )
 
 
-def load_img_from_url(url):
+def load_img_from_url(url: str) -> Tensor:
     raw = requests.get(url, stream=True).raw
     image = Image.open(raw).resize((224, 224)).convert("RGB")
     return transformations(image)

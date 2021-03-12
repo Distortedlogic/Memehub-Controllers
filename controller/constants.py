@@ -1,4 +1,5 @@
 from pathlib import Path
+from typing import cast
 
 import arrow
 
@@ -13,8 +14,11 @@ DAY_TD = 60 * 60 * 24
 HOUR_TD = 60 * 60
 
 
-def get_beginning():
-    return arrow.utcnow().shift(days=-31).replace(hour=0, minute=0, second=0).timestamp
+def get_beginning() -> int:
+    return cast(
+        int,
+        arrow.utcnow().shift(days=-31).replace(hour=0, minute=0, second=0).timestamp,
+    )
 
 
 FULL_SUB_LIST = ["dankmemes", "memes"]

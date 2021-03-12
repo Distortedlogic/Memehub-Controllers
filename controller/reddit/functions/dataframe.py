@@ -1,36 +1,40 @@
 from statistics import stdev
-from time import time
+from typing import Any, Dict, Iterator, List, Tuple, cast
 
 import pandas as pd
 from numpy import e, log
+from pandas.core.frame import DataFrame
+from pandas.core.series import Series
 
 
-def score_df(scoring):
+def score_df(scoring: DataFrame):
     top_1percent = scoring[scoring["upvotes"] > scoring["upvotes"].quantile(0.99)]
     bottom_99 = scoring[scoring["upvotes"] < scoring["upvotes"].quantile(0.99)]
-    authors = list(set(list(top_1percent["username"])))
-    lowest_upvotes_in_top = top_1percent["upvotes"].min()
-    num_memes_in_bottom = (
+    authors = list(set(cast(List[str], list(top_1percent["username"]))))
+    lowest_upvotes_in_top = cast(int, top_1percent["upvotes"].min())
+    num_memes_in_bottom: Dict[str, int] = (
         bottom_99.groupby("username").apply(len).sort_values(ascending=False)
     )
-    num_memes_in_top = (
+    num_memes_in_top: Dict[str, int] = (
         top_1percent.groupby("username").apply(len).sort_values(ascending=False)
     )
-    highest_upvotes = top_1percent.groupby("username")["upvotes"].max()
-    lowest_upvote_ratio = (
+    highest_upvotes: Dict[str, int] = cast(
+        Dict[str, int], top_1percent.groupby("username")["upvotes"].max()
+    )
+    lowest_upvote_ratio: Dict[str, float] = (
         top_1percent.groupby("username")["upvote_ratio"]
         .apply(min)
         .sort_values(ascending=False)
     )
 
-    num_memes_in_bottom_filled = []
+    num_memes_in_bottom_filled: List[int] = []
     for author in authors:
         try:
             num_memes_in_bottom_filled.append(num_memes_in_bottom[author])
         except:
             num_memes_in_bottom_filled.append(0)
 
-    scores_dict = {}
+    scores_dict: Dict[str, Any] = {}
     for author in authors:
         try:
             inv_spammer_index = num_memes_in_top[author] / (
@@ -40,7 +44,7 @@ def score_df(scoring):
         except:
             inv_spammer_index = num_memes_in_top[author]
             spammer_index = 0
-        highest_upvotes_score = log(
+        highest_upvotes_score: float = log(
             e + (highest_upvotes[author] / lowest_upvotes_in_top)
         )
         lowest_ratio = lowest_upvote_ratio[author]
@@ -51,8 +55,10 @@ def score_df(scoring):
             "score": inv_spammer_index * highest_upvotes_score * lowest_ratio,
         }
 
-    raw_scores = [scores_dict[author]["score"] for author in authors]
-    final_scores = 50 / (2.2 * stdev(log(raw_scores))) * log(raw_scores) + 50
+    raw_scores: List[float] = [scores_dict[author]["score"] for author in authors]
+    final_scores: List[float] = 50 / (
+        2.2 * stdev(cast(List[float], log(raw_scores)))
+    ) * log(raw_scores) + 50
 
     return (
         pd.DataFrame(
@@ -93,6 +99,6 @@ score_columns = [
 ]
 
 
-def score_kwargs_gen(df):
-    for _, row in df.iterrows():
+def score_kwargs_gen(df: DataFrame) -> Iterator[Dict[str, Any]]:
+    for _, row in cast(Iterator[Tuple[int, Series[Any]]], df.iterrows()):
         yield {column: row[column] for column in score_columns}

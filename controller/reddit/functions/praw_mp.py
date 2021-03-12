@@ -1,16 +1,15 @@
 import random
 from datetime import datetime
 from json import loads
+from typing import Any, Dict, cast
 
-from billiard import current_process
-from controller.generated.models import RedditMeme, db
 from decouple import config
 from praw import Reddit
 from praw.reddit import Submission
 
 
-def init_reddit(id):
-    reddit_oauth = loads(config("reddit_oauth_" + str(id)))
+def init_reddit(id: int):
+    reddit_oauth = loads(cast(str, config("reddit_oauth_" + str(id))))
     return Reddit(
         client_id=reddit_oauth["CLIENT_ID"],
         client_secret=reddit_oauth["CLIENT_SECRET"],
@@ -44,9 +43,9 @@ def initializer():
                     raise Exception("reddit instance error")
 
 
-def praw_by_id(submission_id):
+def praw_by_id(submission_id: str):
     try:
-        submission: Submission = reddit.submission(id=submission_id)
+        submission: Submission = cast(Reddit, reddit).submission(id=submission_id)
         if not submission.stickied:
             if any(
                 submission.url.endswith(filetype)
@@ -57,16 +56,17 @@ def praw_by_id(submission_id):
         pass
 
 
-def extract_data(submission):
-    return dict(
-        reddit_id=submission.id,
-        title=submission.title,
-        username=str(submission.author),
-        timestamp=submission.created_utc,
-        created_at=datetime.fromtimestamp(submission.created_utc),
-        url=submission.url,
-        upvote_ratio=submission.upvote_ratio,
-        upvotes=submission.score,
-        downvotes=round(submission.score / submission.upvote_ratio) - submission.score,
-        num_comments=submission.num_comments,
-    )
+def extract_data(submission: Submission) -> Dict[str, Any]:
+    return {
+        "reddit_id": submission.id,
+        "title": submission.title,
+        "username": str(submission.author),
+        "timestamp": submission.created_utc,
+        "created_at": datetime.fromtimestamp(submission.created_utc),
+        "url": submission.url,
+        "upvote_ratio": submission.upvote_ratio,
+        "upvotes": submission.score,
+        "downvotes": round(submission.score / submission.upvote_ratio)
+        - submission.score,
+        "num_comments": submission.num_comments,
+    }

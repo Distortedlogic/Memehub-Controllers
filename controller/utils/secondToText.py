@@ -1,4 +1,4 @@
-def secondsToText(secs):
+def secondsToText(secs: int) -> str:
     days = int(secs // 86400)
     hours = int((secs - days * 86400) // 3600)
     minutes = int((secs - days * 86400 - hours * 3600) // 60)

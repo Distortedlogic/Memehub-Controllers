@@ -1,9 +1,12 @@
-import subprocess, click, os
+import os
+import subprocess
+
+import click
 
 
 @click.command()
 @click.argument("name", default="")
-def cli(name):
+def cli(name: str):
     """
     Runs Arbitrary Scripts from Scripts Folder
 

@@ -1,4 +1,5 @@
 from datetime import datetime
+from typing import cast
 
 import pandas as pd
 from controller.constants import FULL_SUB_LIST, HOUR_TD, MONTH_TD
@@ -12,16 +13,25 @@ from controller.reddit.functions.dataframe import score_df, score_kwargs_gen
 from controller.reddit.functions.misc import round_hour
 from sqlalchemy import and_
 from sqlalchemy.orm import load_only
+from sqlalchemy.sql.expression import ClauseElement
 
 
-def score(sub, start_ts, end_ts):
+def score(sub: str, start_ts: int, end_ts: int):
     cols = ["username", "upvotes", "upvote_ratio"]
     df = pd.read_sql(
-        db.session.query(RedditMeme)
-        .filter(and_(start_ts < RedditMeme.timestamp, RedditMeme.timestamp < end_ts))
-        .filter_by(subreddit=sub)
-        .options(load_only(*cols))
-        .statement,
+        cast(
+            str,
+            db.session.query(RedditMeme)
+            .filter(
+                and_(
+                    cast(ClauseElement, start_ts < RedditMeme.timestamp),
+                    cast(ClauseElement, RedditMeme.timestamp < end_ts),
+                )
+            )
+            .filter_by(subreddit=sub)
+            .options(load_only(*cols))
+            .statement,
+        ),
         db.session.bind,
     )
     scored = score_df(df)
@@ -38,7 +48,7 @@ def score(sub, start_ts, end_ts):
     db.session.commit()
 
 
-def score_redditors(interval=HOUR_TD, td=MONTH_TD, verbose=False):
+def score_redditors(interval: int = HOUR_TD, td: int = MONTH_TD, verbose: bool = False):
     if verbose:
         print("Scoring")
     for sub in FULL_SUB_LIST:

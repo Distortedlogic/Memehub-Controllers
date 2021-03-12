@@ -1,9 +1,10 @@
 import json
-import time
+from multiprocessing.pool import Pool as mpPool
+from typing import Any, Dict, Iterator, List, Union, cast
 
 import arrow
 import requests
-from billiard import Pool, cpu_count
+from billiard import Pool, cpu_count  # type:ignore
 from controller.constants import FULL_SUB_LIST, PUSHSHIFT_URI, get_beginning
 from controller.generated.models import RedditMeme, Redditor, db
 from controller.reddit.functions.database import redditmeme_max_ts, redditmeme_min_ts
@@ -13,16 +14,16 @@ from tqdm import tqdm
 
 
 @retry(tries=5, delay=2)
-def make_request(uri):
+def make_request(uri: str) -> Dict[str, List[Dict[str, Any]]]:
     with requests.get(uri) as resp:
         return json.loads(resp.content)
 
 
-def query_pushshift(subreddit, start_at, end_at):
+def query_pushshift(subreddit: str, start_at: int, end_at: int) -> Iterator[List[str]]:
     SIZE = 100
     n = SIZE
     while n == SIZE:
-        collection = []
+        collection: List[Dict[str, Any]] = []
         while n == SIZE and len(collection) < 1000:
             url = PUSHSHIFT_URI.format(subreddit, start_at, end_at, SIZE)
             if not (raw := make_request(url)):
@@ -35,18 +36,21 @@ def query_pushshift(subreddit, start_at, end_at):
         yield list(map(lambda post: post["id"], collection))
 
 
-def stream(sub: str, max_ts: int, now: int, verbose):
-    prev_ids = []
+def stream(
+    sub: str, max_ts: int, now: int, verbose: bool
+) -> Iterator[List[Dict[str, Any]]]:
     for ids in query_pushshift(sub, max_ts, now):
-        with Pool(cpu_count(), initializer) as workers:
+        with cast(mpPool, Pool(cpu_count(), initializer)) as workers:
             if verbose:
-                memes = list(tqdm(workers.imap_unordered(praw_by_id, ids)))
+                memes: List[Union[Dict[str, Any], None]] = list(
+                    tqdm(workers.imap_unordered(praw_by_id, ids))
+                )
             else:
                 memes = list(workers.imap_unordered(praw_by_id, ids))
         yield [meme for meme in memes if meme and meme["username"] != "None"]
 
 
-def engine(sub, max_ts, now, verbose):
+def engine(sub: str, max_ts: int, now: int, verbose: bool) -> None:
     for raw_memes in stream(sub, max_ts, now, verbose):
         for meme in raw_memes:
             try:
@@ -68,15 +72,15 @@ def engine(sub, max_ts, now, verbose):
         db.session.commit()
 
 
-def scrape_reddit_memes(verbose=False):
+def scrape_reddit_memes(verbose: bool = False):
     for sub in FULL_SUB_LIST:
-        now = arrow.utcnow().shift(days=-1).replace(second=0, minute=0).timestamp
+        now: int = arrow.utcnow().shift(days=-1).replace(second=0, minute=0).timestamp
         if not (max_ts := redditmeme_max_ts(sub)):
             max_ts = get_beginning()
         engine(sub, max_ts, now, verbose=verbose)
 
 
-def scrape_reddit_memes_backwards(verbose=False):
+def scrape_reddit_memes_backwards(verbose: bool = False):
     for sub in FULL_SUB_LIST:
         print(sub) if verbose else None
         if not (min_ts := redditmeme_min_ts(sub)):

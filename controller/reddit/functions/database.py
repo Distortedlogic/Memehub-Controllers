@@ -1,8 +1,4 @@
-import time
-from typing import List
-
 from controller.generated.models import RedditMeme, RedditScore, db
-from sqlalchemy import and_
 
 
 def redditmeme_min_ts(subreddit: str) -> int:
