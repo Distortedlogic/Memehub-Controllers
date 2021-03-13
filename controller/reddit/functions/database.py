@@ -1,12 +1,17 @@
-from controller.generated.models import RedditMeme, RedditScore, db
+from typing import cast
+
+from controller.generated.models import RedditMeme, RedditScore
+from controller.session import site_db
+from sqlalchemy.sql.functions import func
 
 
 def redditmeme_min_ts(subreddit: str) -> int:
     try:
-        min_ts = int(
-            db.session.query(db.func.min(RedditMeme.timestamp))
+        min_ts = cast(
+            int,
+            site_db.query(func.min(RedditMeme.timestamp))
             .filter_by(subreddit=subreddit)
-            .scalar()
+            .scalar(),
         )
         return min_ts
     except:
@@ -15,10 +20,11 @@ def redditmeme_min_ts(subreddit: str) -> int:
 
 def redditmeme_max_ts(subreddit: str) -> int:
     try:
-        max_ts = int(
-            db.session.query(db.func.max(RedditMeme.timestamp))
+        max_ts = cast(
+            int,
+            site_db.query(func.max(RedditMeme.timestamp))
             .filter_by(subreddit=subreddit)
-            .scalar()
+            .scalar(),
         )
         return max_ts
     except:
@@ -27,10 +33,11 @@ def redditmeme_max_ts(subreddit: str) -> int:
 
 def redditscore_min_ts(subreddit: str) -> int:
     try:
-        min_ts = int(
-            db.session.query(db.func.min(RedditScore.timestamp))
+        min_ts = cast(
+            int,
+            site_db.query(func.min(RedditScore.timestamp))
             .filter_by(subreddit=subreddit)
-            .scalar()
+            .scalar(),
         )
         return min_ts
     except:
@@ -39,10 +46,11 @@ def redditscore_min_ts(subreddit: str) -> int:
 
 def redditscore_max_ts(subreddit: str) -> int:
     try:
-        max_ts = int(
-            db.session.query(db.func.max(RedditScore.timestamp))
+        max_ts = cast(
+            int,
+            site_db.query(func.max(RedditScore.timestamp))
             .filter_by(subreddit=subreddit)
-            .scalar()
+            .scalar(),
         )
         return max_ts
     except:

@@ -3,7 +3,7 @@ from typing import cast
 
 import pandas as pd
 from controller.constants import FULL_SUB_LIST, HOUR_TD, MONTH_TD
-from controller.generated.models import RedditMeme, RedditScore, db
+from controller.generated.models import RedditMeme, RedditScore
 from controller.reddit.functions.database import (
     redditmeme_max_ts,
     redditmeme_min_ts,
@@ -11,6 +11,7 @@ from controller.reddit.functions.database import (
 )
 from controller.reddit.functions.dataframe import score_df, score_kwargs_gen
 from controller.reddit.functions.misc import round_hour
+from controller.session import site_db
 from sqlalchemy import and_
 from sqlalchemy.orm import load_only
 from sqlalchemy.sql.expression import ClauseElement
@@ -21,7 +22,7 @@ def score(sub: str, start_ts: int, end_ts: int):
     df = pd.read_sql(
         cast(
             str,
-            db.session.query(RedditMeme)
+            site_db.query(RedditMeme)
             .filter(
                 and_(
                     cast(ClauseElement, start_ts < RedditMeme.timestamp),
@@ -32,10 +33,10 @@ def score(sub: str, start_ts: int, end_ts: int):
             .options(load_only(*cols))
             .statement,
         ),
-        db.session.bind,
+        site_db.bind,
     )
     scored = score_df(df)
-    db.session.add_all(
+    site_db.add_all(
         RedditScore(
             **kwargs,
             timestamp=end_ts,
@@ -45,7 +46,7 @@ def score(sub: str, start_ts: int, end_ts: int):
         )
         for kwargs in score_kwargs_gen(scored)
     )
-    db.session.commit()
+    site_db.commit()
 
 
 def score_redditors(interval: int = HOUR_TD, td: int = MONTH_TD, verbose: bool = False):

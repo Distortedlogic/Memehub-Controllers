@@ -6,9 +6,10 @@ import arrow
 import requests
 from billiard import Pool, cpu_count  # type:ignore
 from controller.constants import FULL_SUB_LIST, PUSHSHIFT_URI, get_beginning
-from controller.generated.models import RedditMeme, Redditor, db
+from controller.generated.models import RedditMeme, Redditor
 from controller.reddit.functions.database import redditmeme_max_ts, redditmeme_min_ts
 from controller.reddit.functions.praw_mp import initializer, praw_by_id
+from controller.session import site_db
 from retry import retry
 from tqdm import tqdm
 
@@ -55,21 +56,17 @@ def engine(sub: str, max_ts: int, now: int, verbose: bool) -> None:
         for meme in raw_memes:
             try:
                 redditor = (
-                    db.session.query(Redditor)
-                    .filter_by(username=meme["username"])
-                    .one()
+                    site_db.query(Redditor).filter_by(username=meme["username"]).one()
                 )
             except:
                 redditor = Redditor(username=meme["username"])
-                db.session.add(redditor)
-                db.session.commit()
+                site_db.add(redditor)
+                site_db.commit()
             try:
-                meme = db.session.query(RedditMeme).filter_by(url=meme["url"]).one()
+                meme = site_db.query(RedditMeme).filter_by(url=meme["url"]).one()
             except:
-                db.session.add(
-                    RedditMeme(**meme, subreddit=sub, redditor_id=redditor.id)
-                )
-        db.session.commit()
+                site_db.add(RedditMeme(**meme, subreddit=sub, redditor_id=redditor.id))
+        site_db.commit()
 
 
 def scrape_reddit_memes(verbose: bool = False):

@@ -9,7 +9,6 @@ from flask_cors import CORS
 from redisai import Client
 
 from controller.constants import STATIC_PATH
-from controller.generated.models import db
 from controller.utils.model_func import load_img_from_url
 
 TASK_LIST = ["controller.reddit.tasks"]
@@ -37,7 +36,6 @@ def create_app():
     app = Flask(__name__, instance_relative_config=True)
     _ = CORS(app)
     app.config.from_object("config.flask")
-    db.init_app(app)
     rai = Client(host="redis", port=6379)
     with open(STATIC_PATH, "rb") as f:
         static = json.load(f)

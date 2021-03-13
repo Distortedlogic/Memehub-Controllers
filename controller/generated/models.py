@@ -2,229 +2,217 @@
 from typing import Any, Dict
 
 from controller.reddit.functions.misc import dump_datetime
-from flask_sqlalchemy import SQLAlchemy
+from sqlalchemy import (
+    BigInteger,
+    Boolean,
+    Column,
+    DateTime,
+    Float,
+    ForeignKey,
+    Integer,
+    String,
+)
 from sqlalchemy.dialects.postgresql.base import UUID
+from sqlalchemy.ext.declarative import declarative_base
+from sqlalchemy.orm import relationship
+from sqlalchemy.schema import FetchedValue
 
-db: Any = SQLAlchemy()
+Base: Any = declarative_base()
 
 
-class CommentVote(db.Model):
+class CommentVote(Base):
     __tablename__ = "comment_votes"
 
-    userId = db.Column(
-        db.ForeignKey("users.id", ondelete="CASCADE"), primary_key=True, nullable=False
+    userId = Column(
+        ForeignKey("users.id", ondelete="CASCADE"), primary_key=True, nullable=False
     )
-    commentId = db.Column(
-        db.ForeignKey("comments.id", ondelete="CASCADE"),
-        primary_key=True,
-        nullable=False,
+    commentId = Column(
+        ForeignKey("comments.id", ondelete="CASCADE"), primary_key=True, nullable=False
     )
-    upvote: bool = db.Column(db.Boolean, nullable=False)
-    createdAt = db.Column(db.DateTime, nullable=False, server_default=db.FetchedValue())
+    upvote = Column(Boolean, nullable=False)
+    createdAt = Column(DateTime, nullable=False, server_default=FetchedValue())
 
-    comment = db.relationship(
+    comment = relationship(
         "Comment",
         primaryjoin="CommentVote.commentId == Comment.id",
         backref="comment_votes",
     )
-    user = db.relationship(
+    user = relationship(
         "User", primaryjoin="CommentVote.userId == User.id", backref="comment_votes"
     )
 
 
-class Comment(db.Model):
+class Comment(Base):
     __tablename__ = "comments"
 
-    id = db.Column(UUID, primary_key=True)
-    text = db.Column(db.String, nullable=False)
-    isHive = db.Column(db.Boolean, nullable=False, server_default=db.FetchedValue())
-    permlink = db.Column(db.String)
-    userId = db.Column(db.ForeignKey("users.id", ondelete="CASCADE"), nullable=False)
-    memeId = db.Column(db.ForeignKey("memes.id", ondelete="CASCADE"))
-    ups = db.Column(db.Integer, nullable=False, server_default=db.FetchedValue())
-    downs = db.Column(db.Integer, nullable=False, server_default=db.FetchedValue())
-    ratio = db.Column(db.Float(53), nullable=False, server_default=db.FetchedValue())
-    createdAt = db.Column(db.DateTime, nullable=False, server_default=db.FetchedValue())
-    updatedAt = db.Column(db.DateTime, nullable=False, server_default=db.FetchedValue())
+    id = Column(UUID, primary_key=True)
+    text = Column(String, nullable=False)
+    isHive = Column(Boolean, nullable=False, server_default=FetchedValue())
+    permlink = Column(String)
+    userId = Column(ForeignKey("users.id", ondelete="CASCADE"), nullable=False)
+    memeId = Column(ForeignKey("memes.id", ondelete="CASCADE"))
+    ups = Column(Integer, nullable=False, server_default=FetchedValue())
+    downs = Column(Integer, nullable=False, server_default=FetchedValue())
+    ratio = Column(Float(53), nullable=False, server_default=FetchedValue())
+    createdAt = Column(DateTime, nullable=False, server_default=FetchedValue())
+    updatedAt = Column(DateTime, nullable=False, server_default=FetchedValue())
 
-    meme = db.relationship(
+    meme = relationship(
         "Meme", primaryjoin="Comment.memeId == Meme.id", backref="comments"
     )
-    user = db.relationship(
+    user = relationship(
         "User", primaryjoin="Comment.userId == User.id", backref="comments"
     )
 
 
-class Emoji(db.Model):
+class Emoji(Base):
     __tablename__ = "emojis"
 
-    name = db.Column(db.String, primary_key=True)
-    url = db.Column(db.String, nullable=False)
-    createdAt = db.Column(db.DateTime, nullable=False, server_default=db.FetchedValue())
+    name = Column(String, primary_key=True)
+    url = Column(String, nullable=False)
+    createdAt = Column(DateTime, nullable=False, server_default=FetchedValue())
 
 
-class Follow(db.Model):
+class Follow(Base):
     __tablename__ = "follows"
 
-    followerId = db.Column(
-        db.ForeignKey("users.id", ondelete="CASCADE"), primary_key=True, nullable=False
+    followerId = Column(
+        ForeignKey("users.id", ondelete="CASCADE"), primary_key=True, nullable=False
     )
-    followingId = db.Column(
-        db.ForeignKey("users.id", ondelete="CASCADE"), primary_key=True, nullable=False
+    followingId = Column(
+        ForeignKey("users.id", ondelete="CASCADE"), primary_key=True, nullable=False
     )
-    createdAt = db.Column(db.DateTime, nullable=False, server_default=db.FetchedValue())
+    createdAt = Column(DateTime, nullable=False, server_default=FetchedValue())
 
-    user = db.relationship(
+    user = relationship(
         "User", primaryjoin="Follow.followerId == User.id", backref="user_follows"
     )
-    user1 = db.relationship(
+    user1 = relationship(
         "User", primaryjoin="Follow.followingId == User.id", backref="user_follows_0"
     )
 
 
-class MemeVote(db.Model):
+class MemeVote(Base):
     __tablename__ = "meme_votes"
 
-    userId = db.Column(
-        db.ForeignKey("users.id", ondelete="CASCADE"), primary_key=True, nullable=False
+    userId = Column(
+        ForeignKey("users.id", ondelete="CASCADE"), primary_key=True, nullable=False
     )
-    memeId = db.Column(
-        db.ForeignKey("memes.id", ondelete="CASCADE"), primary_key=True, nullable=False
+    memeId = Column(
+        ForeignKey("memes.id", ondelete="CASCADE"), primary_key=True, nullable=False
     )
-    upvote = db.Column(db.Boolean, nullable=False)
-    createdAt = db.Column(db.DateTime, nullable=False, server_default=db.FetchedValue())
+    upvote = Column(Boolean, nullable=False)
+    createdAt = Column(DateTime, nullable=False, server_default=FetchedValue())
 
-    meme = db.relationship(
+    meme = relationship(
         "Meme", primaryjoin="MemeVote.memeId == Meme.id", backref="meme_votes"
     )
-    user = db.relationship(
+    user = relationship(
         "User", primaryjoin="MemeVote.userId == User.id", backref="meme_votes"
     )
 
 
-class Meme(db.Model):
+class Meme(Base):
     __tablename__ = "memes"
 
-    id = db.Column(UUID, primary_key=True)
-    isHive = db.Column(db.Boolean, nullable=False, server_default=db.FetchedValue())
-    title = db.Column(db.String)
-    url = db.Column(db.String, nullable=False)
-    userId = db.Column(db.ForeignKey("users.id", ondelete="CASCADE"), nullable=False)
-    season = db.Column(db.Integer)
-    community = db.Column(db.String, nullable=False)
-    numComments = db.Column(
-        db.Integer, nullable=False, server_default=db.FetchedValue()
-    )
-    ups = db.Column(db.Integer, nullable=False, server_default=db.FetchedValue())
-    downs = db.Column(db.Integer, nullable=False, server_default=db.FetchedValue())
-    ratio = db.Column(db.Float(53), nullable=False, server_default=db.FetchedValue())
-    createdAt = db.Column(db.DateTime, nullable=False, server_default=db.FetchedValue())
-    updatedAt = db.Column(db.DateTime, nullable=False, server_default=db.FetchedValue())
-    ocrText = db.Column(db.String)
-    stonk = db.Column(db.String)
-    version = db.Column(db.String)
+    id = Column(UUID, primary_key=True)
+    isHive = Column(Boolean, nullable=False, server_default=FetchedValue())
+    title = Column(String)
+    url = Column(String, nullable=False)
+    userId = Column(ForeignKey("users.id", ondelete="CASCADE"), nullable=False)
+    season = Column(Integer)
+    community = Column(String, nullable=False)
+    numComments = Column(Integer, nullable=False, server_default=FetchedValue())
+    ups = Column(Integer, nullable=False, server_default=FetchedValue())
+    downs = Column(Integer, nullable=False, server_default=FetchedValue())
+    ratio = Column(Float(53), nullable=False, server_default=FetchedValue())
+    createdAt = Column(DateTime, nullable=False, server_default=FetchedValue())
+    updatedAt = Column(DateTime, nullable=False, server_default=FetchedValue())
+    ocrText = Column(String)
+    stonk = Column(String)
+    version = Column(String)
 
-    user = db.relationship(
-        "User", primaryjoin="Meme.userId == User.id", backref="memes"
-    )
+    user = relationship("User", primaryjoin="Meme.userId == User.id", backref="memes")
 
 
-class Migration(db.Model):
+class Migration(Base):
     __tablename__ = "migrations"
 
-    id = db.Column(db.Integer, primary_key=True, server_default=db.FetchedValue())
-    timestamp = db.Column(db.BigInteger, nullable=False)
-    name = db.Column(db.String, nullable=False)
+    id = Column(Integer, primary_key=True, server_default=FetchedValue())
+    timestamp = Column(BigInteger, nullable=False)
+    name = Column(String, nullable=False)
 
 
-class Rank(db.Model):
+class Rank(Base):
     __tablename__ = "rank"
 
-    createdAt = db.Column(db.DateTime, primary_key=True, nullable=False)
-    userId = db.Column(db.String, primary_key=True, nullable=False)
-    timeFrame = db.Column(db.String, primary_key=True, nullable=False)
-    rank = db.Column(db.Integer, nullable=False)
-    totalPoints = db.Column(db.Integer, nullable=False)
+    createdAt = Column(DateTime, primary_key=True, nullable=False)
+    userId = Column(String, primary_key=True, nullable=False)
+    timeFrame = Column(String, primary_key=True, nullable=False)
+    rank = Column(Integer, nullable=False)
+    totalPoints = Column(Integer, nullable=False)
 
 
-class RedditMeme(db.Model):
+class RedditMeme(Base):
     __tablename__ = "reddit_memes"
 
-    id = db.Column(db.Integer, primary_key=True, server_default=db.FetchedValue())
-    username = db.Column(db.String(20), nullable=False)
-    reddit_id = db.Column(db.String(20), nullable=False)
-    subreddit = db.Column(db.String(50), nullable=False)
-    title = db.Column(db.String(500), nullable=False)
-    url = db.Column(db.String(1000), nullable=False)
-    meme_text = db.Column(db.String(1000000))
-    timestamp = db.Column(db.Integer, nullable=False)
-    created_at = db.Column(db.DateTime, nullable=False)
-    upvote_ratio = db.Column(db.Float(53), nullable=False)
-    upvotes = db.Column(db.Integer, nullable=False)
-    downvotes = db.Column(db.Integer, nullable=False)
-    num_comments = db.Column(db.Integer, nullable=False)
-    redditor_id = db.Column(db.Integer)
-    redditorId = db.Column(db.ForeignKey("redditors.id"))
-    version = db.Column(db.String(20))
-    meme_clf = db.Column(db.String(100))
-    meme_clf_correct = db.Column(db.Boolean)
-    stonk = db.Column(db.Boolean)
-    stonk_correct = db.Column(db.Boolean)
-    is_template = db.Column(db.Boolean)
+    id = Column(Integer, primary_key=True, server_default=FetchedValue())
+    username = Column(String(20), nullable=False)
+    reddit_id = Column(String(20), nullable=False)
+    subreddit = Column(String(50), nullable=False)
+    title = Column(String(500), nullable=False)
+    url = Column(String(1000), nullable=False)
+    meme_text = Column(String(1000000))
+    timestamp = Column(Integer, nullable=False)
+    created_at = Column(DateTime, nullable=False)
+    upvote_ratio = Column(Float(53), nullable=False)
+    upvotes = Column(Integer, nullable=False)
+    downvotes = Column(Integer, nullable=False)
+    num_comments = Column(Integer, nullable=False)
+    redditor_id = Column(Integer)
+    redditorId = Column(ForeignKey("redditors.id"))
+    version = Column(String(20))
+    meme_clf = Column(String(100))
+    meme_clf_correct = Column(Boolean)
+    stonk = Column(Boolean)
+    stonk_correct = Column(Boolean)
+    is_template = Column(Boolean)
 
-    redditor = db.relationship(
+    redditor = relationship(
         "Redditor",
         primaryjoin="RedditMeme.redditorId == Redditor.id",
         backref="reddit_memes",
     )
 
-    @property
-    def serialize(self) -> Dict[str, Any]:
-        return {
-            "reddit_id": self.reddit_id,
-            "subreddit": self.subreddit,
-            "title": self.title,
-            "username": self.username,
-            "url": self.url,
-            "meme_text": self.meme_text,
-            "template": self.template,
-            "timestamp": self.timestamp,
-            "datetime": dump_datetime(self.datetime),
-            "upvote_ratio": self.upvote_ratio,
-            "upvotes": self.upvotes,
-            "downvotes": self.downvotes,
-            "num_comments": self.num_comments,
-        }
 
-
-class RedditScore(db.Model):
+class RedditScore(Base):
     __tablename__ = "reddit_scores"
 
-    id = db.Column(db.Integer, primary_key=True, server_default=db.FetchedValue())
-    username = db.Column(db.String(20), nullable=False)
-    subreddit = db.Column(db.String(50), nullable=False)
-    time_delta = db.Column(db.Integer, nullable=False)
-    timestamp = db.Column(db.Integer, nullable=False)
-    datetime = db.Column(db.DateTime, nullable=False)
-    final_score = db.Column(db.Float(53), nullable=False)
-    raw_score = db.Column(db.Float(53), nullable=False)
-    num_in_bottom = db.Column(db.Integer, nullable=False)
-    num_in_top = db.Column(db.Integer, nullable=False)
-    shitposter_index = db.Column(db.Float(53), nullable=False)
-    highest_upvotes = db.Column(db.Integer, nullable=False)
-    hu_score = db.Column(db.Float(53), nullable=False)
-    lowest_ratio = db.Column(db.Float(53), nullable=False)
-    redditor_id = db.Column(db.Integer)
-    redditorId = db.Column(db.ForeignKey("redditors.id"))
+    id = Column(Integer, primary_key=True, server_default=FetchedValue())
+    username = Column(String(20), nullable=False)
+    subreddit = Column(String(50), nullable=False)
+    time_delta = Column(Integer, nullable=False)
+    timestamp = Column(Integer, nullable=False)
+    datetime = Column(DateTime, nullable=False)
+    final_score = Column(Float(53), nullable=False)
+    raw_score = Column(Float(53), nullable=False)
+    num_in_bottom = Column(Integer, nullable=False)
+    num_in_top = Column(Integer, nullable=False)
+    shitposter_index = Column(Float(53), nullable=False)
+    highest_upvotes = Column(Integer, nullable=False)
+    hu_score = Column(Float(53), nullable=False)
+    lowest_ratio = Column(Float(53), nullable=False)
+    redditor_id = Column(Integer)
+    redditorId = Column(ForeignKey("redditors.id"))
 
-    redditor = db.relationship(
+    redditor = relationship(
         "Redditor",
         primaryjoin="RedditScore.redditorId == Redditor.id",
         backref="reddit_scores",
     )
 
     @property
-    def serialize(self):
+    def serialize(self) -> Dict[str, Any]:
         return {
             "username": self.username,
             "subreddit": self.subreddit,
@@ -254,53 +242,44 @@ class RedditScore(db.Model):
         }
 
 
-class Redditor(db.Model):
+class Redditor(Base):
     __tablename__ = "redditors"
 
-    id = db.Column(db.Integer, primary_key=True, server_default=db.FetchedValue())
-    username = db.Column(db.String(20), nullable=False, unique=True)
+    id = Column(Integer, primary_key=True, server_default=FetchedValue())
+    username = Column(String(20), nullable=False, unique=True)
 
 
-class User(db.Model):
+class User(Base):
     __tablename__ = "users"
 
-    id = db.Column(UUID, primary_key=True)
-    isHive = db.Column(db.Boolean, nullable=False, server_default=db.FetchedValue())
-    verified = db.Column(db.Boolean, nullable=False, server_default=db.FetchedValue())
-    email = db.Column(db.String, unique=True)
-    username = db.Column(db.String, nullable=False, unique=True)
-    avatar = db.Column(db.String, nullable=False, server_default=db.FetchedValue())
-    createdAt = db.Column(db.DateTime, nullable=False, server_default=db.FetchedValue())
-    updatedAt = db.Column(db.DateTime, nullable=False, server_default=db.FetchedValue())
-    password = db.Column(db.String)
-    numFollowing = db.Column(
-        db.Integer, nullable=False, server_default=db.FetchedValue()
+    id = Column(UUID, primary_key=True)
+    isHive = Column(Boolean, nullable=False, server_default=FetchedValue())
+    verified = Column(Boolean, nullable=False, server_default=FetchedValue())
+    email = Column(String, unique=True)
+    username = Column(String, nullable=False, unique=True)
+    avatar = Column(String, nullable=False, server_default=FetchedValue())
+    createdAt = Column(DateTime, nullable=False, server_default=FetchedValue())
+    updatedAt = Column(DateTime, nullable=False, server_default=FetchedValue())
+    password = Column(String)
+    numFollowing = Column(Integer, nullable=False, server_default=FetchedValue())
+    numFollowers = Column(Integer, nullable=False, server_default=FetchedValue())
+    numMemeVotesGiven = Column(Integer, nullable=False, server_default=FetchedValue())
+    numMemeUpvotesRecieved = Column(
+        Integer, nullable=False, server_default=FetchedValue()
     )
-    numFollowers = db.Column(
-        db.Integer, nullable=False, server_default=db.FetchedValue()
+    numMemeDownvotesRecieved = Column(
+        Integer, nullable=False, server_default=FetchedValue()
     )
-    numMemeVotesGiven = db.Column(
-        db.Integer, nullable=False, server_default=db.FetchedValue()
+    numMemeCommentsRecieved = Column(
+        Integer, nullable=False, server_default=FetchedValue()
     )
-    numMemeUpvotesRecieved = db.Column(
-        db.Integer, nullable=False, server_default=db.FetchedValue()
+    numCommentVotesGiven = Column(
+        Integer, nullable=False, server_default=FetchedValue()
     )
-    numMemeDownvotesRecieved = db.Column(
-        db.Integer, nullable=False, server_default=db.FetchedValue()
+    numCommentUpvotesRecieved = Column(
+        Integer, nullable=False, server_default=FetchedValue()
     )
-    numMemeCommentsRecieved = db.Column(
-        db.Integer, nullable=False, server_default=db.FetchedValue()
+    numCommentDownvotesRecieved = Column(
+        Integer, nullable=False, server_default=FetchedValue()
     )
-    numCommentVotesGiven = db.Column(
-        db.Integer, nullable=False, server_default=db.FetchedValue()
-    )
-    numCommentUpvotesRecieved = db.Column(
-        db.Integer, nullable=False, server_default=db.FetchedValue()
-    )
-    numCommentDownvotesRecieved = db.Column(
-        db.Integer, nullable=False, server_default=db.FetchedValue()
-    )
-    totalPoints = db.Column(
-        db.Integer, nullable=False, server_default=db.FetchedValue()
-    )
-
+    totalPoints = Column(Integer, nullable=False, server_default=FetchedValue())

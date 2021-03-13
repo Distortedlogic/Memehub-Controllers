@@ -9,7 +9,7 @@ import redisai
 from botocore.exceptions import ClientError
 from decouple import config
 
-VERSION = "0.2.1"
+VERSION = "0.2.3"
 
 MODEL_REPO = f"{VERSION}/jit/"
 Path(MODEL_REPO).mkdir(parents=True, exist_ok=True)
@@ -62,7 +62,7 @@ def base():
         backend,
         device,
         cast(Any, model),
-        tag=cast(Any, None),
+        tag=VERSION,
         inputs=cast(Any, None),
         outputs=cast(Any, None),
     )
@@ -72,7 +72,7 @@ def base():
         backend,
         device,
         cast(Any, model),
-        tag=cast(Any, None),
+        tag=VERSION,
         inputs=cast(Any, None),
         outputs=cast(Any, None),
     )
@@ -82,7 +82,7 @@ def base():
         backend,
         device,
         cast(Any, model),
-        tag=cast(Any, None),
+        tag=VERSION,
         inputs=cast(Any, None),
         outputs=cast(Any, None),
     )
@@ -108,7 +108,7 @@ def stonks():
             backend,
             device,
             cast(Any, model),
-            tag=cast(Any, None),
+            tag=VERSION,
             inputs=cast(Any, None),
             outputs=cast(Any, None),
         )

@@ -100,5 +100,5 @@ score_columns = [
 
 
 def score_kwargs_gen(df: DataFrame) -> Iterator[Dict[str, Any]]:
-    for _, row in cast(Iterator[Tuple[int, Series[Any]]], df.iterrows()):
+    for _, row in df.iterrows():  # type: ignore
         yield {column: row[column] for column in score_columns}

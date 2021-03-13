@@ -13,7 +13,7 @@ def update():
     with open(STATIC_PATH, "rb") as f:
         static = json.load(f)
     while memes := (
-        db.session.query(Meme)
+        site_db.query(Meme)
         .filter(or_(Meme.stonk == None, Meme.version != VERSION))
         .order_by(Meme.createdAt.desc())
         .limit(100)
