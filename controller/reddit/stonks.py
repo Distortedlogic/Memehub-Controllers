@@ -65,23 +65,23 @@ def update_meme(meme: RedditMeme, keypress: str):
     if "nn" in keypress:
         meme.meme_clf_correct = False  # type: ignore
         meme.stonk_correct = False  # type: ignore
-        meme.is_template = True  # type: ignore
+        meme.is_a_template = True  # type: ignore
     elif "n" in keypress:
         meme.meme_clf_correct = False  # type: ignore
         meme.stonk_correct = False  # type: ignore
-        meme.is_template = False  # type: ignore
+        meme.is_a_template = False  # type: ignore
     elif "y" in keypress:
         meme.stonk = True  # type: ignore
         meme.stonk_correct = True  # type: ignore
         meme.meme_clf_correct = True  # type: ignore
-        meme.is_template = True  # type: ignore
+        meme.is_a_template = True  # type: ignore
 
 
 def handle_keypress_audit(meme: RedditMeme, prev_ids: List[int]):
     if (keypress := input("hit enter for next image -- q to break -- k to kill")) == "":
         meme.meme_clf_correct = True  # type: ignore
         meme.stonk_correct = True  # type: ignore
-        meme.is_template = True  # type: ignore
+        meme.is_a_template = True  # type: ignore
     else:
         update_meme(meme, keypress)
         if "gb" in keypress:

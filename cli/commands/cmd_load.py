@@ -66,7 +66,7 @@ def base():
         inputs=cast(Any, None),
         outputs=cast(Any, None),
     )
-    model = ml2rt.load_model(MODEL_REPO + f"MemeClf.pt")
+    model = ml2rt.load_model(MODEL_REPO + f"meme_clf.pt")
     _ = rai.modelset(
         "MemeClf",
         backend,

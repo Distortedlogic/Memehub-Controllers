@@ -16,4 +16,4 @@ RUN --mount=type=cache,target=/root/.cache/pip pip install -r requirements.txt
 
 ADD start.sh /
 RUN chmod +x /start.sh
-CMD ["/start.sh"]
+CMD ["sh","start.sh"]

@@ -176,7 +176,7 @@ class RedditMeme(Base):
     meme_clf_correct = Column(Boolean)
     stonk = Column(Boolean)
     stonk_correct = Column(Boolean)
-    is_template = Column(Boolean)
+    is_a_template = Column(Boolean)
 
     redditor = relationship(
         "Redditor",

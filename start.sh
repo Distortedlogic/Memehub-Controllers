@@ -1,5 +1,4 @@
 #!/bin/bash
-
 pip install -e .
 mh load base
 mh load stonks
