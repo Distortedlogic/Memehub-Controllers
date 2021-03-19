@@ -1,9 +1,9 @@
 {
   "pythonVersion": "3.8",
   "pythonPlatform": "Linux",
-  "include": ["controller"],
+  "include": ["src"],
 
-  "exclude": ["**/node_modules", "**/__pycache__", "controller/typestubs"],
+  "exclude": ["**/node_modules", "**/__pycache__", "src/typestubs"],
   "useLibraryCodeForTypes": true,
   "typeCheckingMode": "basic",
   "venvPath": "C:\\Users\\jerme\\anaconda3\\envs\\mh",

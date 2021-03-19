@@ -1,4 +1,3 @@
-import json
 from pathlib import Path
 from typing import Any, cast
 
@@ -8,12 +7,11 @@ import ml2rt
 import redisai
 from botocore.exceptions import ClientError
 from decouple import config
+from src.constants import LOAD_VERSION, MODELS_REPO
+from src.utils.model_func import get_static_names
 
-VERSION = "0.2.3"
-
-MODEL_REPO = f"{VERSION}/jit/"
-Path(MODEL_REPO).mkdir(parents=True, exist_ok=True)
-STATIC_PATH = f"{VERSION}/static.json"
+JIT_REPO = MODELS_REPO + f"{LOAD_VERSION}/jit/"
+Path(JIT_REPO).mkdir(parents=True, exist_ok=True)  # type: ignore
 
 s3: Any = boto3.client(
     "s3", aws_access_key_id=config("AWS_ID"), aws_secret_access_key=config("AWS_KEY"),
@@ -23,21 +21,20 @@ device = "CPU"
 backend = "torch"
 
 
-def download_aws(path: str):
-    if not Path(path).is_file():
-        with open(path, "wb") as f:
+def download_aws(local_repo: str, path: str):
+    if not Path(local_repo + path).is_file():
+        with open(local_repo + path, "wb") as f:
             try:
                 s3.download_fileobj("memehub", "memehub/models/" + path, f)
             except ClientError:
                 pass
 
 
-def download_from_aws():
-    download_aws(STATIC_PATH)
-    with open(STATIC_PATH, "rb") as f:
-        static = json.load(f)
+def download_stonks_from_aws():
+    download_aws(MODELS_REPO, f"{LOAD_VERSION}/static.json")
+    static = get_static_names(LOAD_VERSION)
     for name in static["names"]:
-        download_aws(MODEL_REPO + f"{name}.pt")
+        download_aws(JIT_REPO, f"{name}.pt")
     return static
 
 
@@ -52,37 +49,37 @@ def base():
     """
     Load models into redisai
     """
-    download_aws(MODEL_REPO + "features.pt")
-    download_aws(MODEL_REPO + "MemeClf.pt")
-    download_aws(MODEL_REPO + "dense.pt")
+    download_aws(JIT_REPO, "features.pt")
+    download_aws(JIT_REPO, "MemeClf.pt")
+    download_aws(JIT_REPO, "dense.pt")
     rai = redisai.Client(host="redis", port=6379)
-    model = ml2rt.load_model(MODEL_REPO + f"features.pt")
+    model = ml2rt.load_model(JIT_REPO + f"features.pt")
     _ = rai.modelset(
         "features",
         backend,
         device,
         cast(Any, model),
-        tag=VERSION,
+        tag=LOAD_VERSION,
         inputs=cast(Any, None),
         outputs=cast(Any, None),
     )
-    model = ml2rt.load_model(MODEL_REPO + f"meme_clf.pt")
+    model = ml2rt.load_model(JIT_REPO + f"meme_clf.pt")
     _ = rai.modelset(
         "MemeClf",
         backend,
         device,
         cast(Any, model),
-        tag=VERSION,
+        tag=LOAD_VERSION,
         inputs=cast(Any, None),
         outputs=cast(Any, None),
     )
-    model = ml2rt.load_model(MODEL_REPO + f"dense.pt")
+    model = ml2rt.load_model(JIT_REPO + f"dense.pt")
     _ = rai.modelset(
         "dense",
         backend,
         device,
         cast(Any, model),
-        tag=VERSION,
+        tag=LOAD_VERSION,
         inputs=cast(Any, None),
         outputs=cast(Any, None),
     )
@@ -96,19 +93,19 @@ def stonks():
     """
     Load models into redisai
     """
-    static = download_from_aws()
+    static = download_stonks_from_aws()
     rai = redisai.Client(host="redis", port=6379)
     current_stonks = [data[0] for data in rai.modelscan()]
     names_to_load = [name for name in static["names"] if name not in current_stonks]
     for idx, name in enumerate(names_to_load):
         print(f"{idx}/{len(names_to_load)} - {name}")
-        model = ml2rt.load_model(MODEL_REPO + f"{name}.pt")
+        model = ml2rt.load_model(JIT_REPO + f"{name}.pt")
         _ = rai.modelset(
             name,
             backend,
             device,
             cast(Any, model),
-            tag=VERSION,
+            tag=LOAD_VERSION,
             inputs=cast(Any, None),
             outputs=cast(Any, None),
         )

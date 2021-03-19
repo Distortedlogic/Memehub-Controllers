@@ -1,6 +1,6 @@
 import click
-from controller import APP
-from controller.stonks.updater import update
+from src import APP
+from src.stonks.updater import update
 
 
 @click.group()

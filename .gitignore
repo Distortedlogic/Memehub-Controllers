@@ -1,16 +1,5 @@
-init-mongo.js
-backups/
-controllers/controller/stonks/models/
+models/
 data/
-*.h5
-*.pb
-.vscode
-*.jpg
-*.png
-*.jpeg
-*.csv
-
-0.*
 
 # Byte-compiled / optimized / DLL files
 __pycache__/

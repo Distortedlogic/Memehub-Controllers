@@ -103,6 +103,9 @@ torch
 torchvision
 matplotlib
 
+beautifulsoup4 == 4.9.3
+alembic == 1.4.3
+
 # notebook=6.1.4
 # jupyterlab
 tornado==6.1

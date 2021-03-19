@@ -48,9 +48,9 @@ jobs:
             --build-arg reddit_oauth_6=$reddit_oauth_6
             --build-arg reddit_oauth_7=$reddit_oauth_7
             -f Dockerfile.prod
-            -t distortedlogic/controllers:latest .
+            -t distortedlogic/flask:latest .
       - run: docker login -u distortedlogic -p $DOCKERHUB_TOKEN
-      - run: docker push distortedlogic/controllers:latest
+      - run: docker push distortedlogic/flask:latest
 
 workflows:
   build-docker-image-only:

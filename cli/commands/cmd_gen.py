@@ -12,6 +12,6 @@ def cli():
         name {[type]} -- filename without ext
     """
 
-    cmd = "sqlacodegen --outfile controller/generated/models.py postgresql://postgres:postgres@sitedata:5432"
+    cmd = "sqlacodegen --outfile src/generated/models.py postgresql://postgres:postgres@sitedata:5432"
 
     return subprocess.call(cmd, shell=True)

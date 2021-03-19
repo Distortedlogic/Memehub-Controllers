@@ -1,19 +1,19 @@
 version: "3.7"
 services:
-  controllers:
-      image: distortedlogic/controllers:latest
+  flask:
+      image: distortedlogic/flask:latest
       build: .
-      container_name: controllers
+      container_name: flask
       restart: on-failure
       volumes:
         - .:/app
       ports:
         - 8001:8000
-  controller-tasks:
-    image: distortedlogic/controllers:latest
-    container_name: controller-tasks
+  celery:
+    image: distortedlogic/flask:latest
+    container_name: celery
     restart: on-failure
-    command: celery -A controller.CELERY worker -B -l info
+    command: celery -A src.CELERY worker -B -l info
     volumes:
       - .:/app
   notebook:

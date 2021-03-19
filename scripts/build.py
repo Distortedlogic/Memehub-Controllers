@@ -1,6 +1,6 @@
-from controller import APP
-from controller.reddit.scorer import score_redditors
-from controller.reddit.scraper import scrape_reddit_memes, scrape_reddit_memes_backwards
+from src import APP
+from src.reddit.scorer import score_redditors
+from src.reddit.scraper import scrape_reddit_memes, scrape_reddit_memes_backwards
 
 
 def build_backwards():

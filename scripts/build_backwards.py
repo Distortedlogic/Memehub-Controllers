@@ -1,5 +1,5 @@
-from controller import APP
-from controller.reddit.scraper import scrape_reddit_memes_backwards
+from src import APP
+from src.reddit.scraper import scrape_reddit_memes_backwards
 
 if __name__ == "__main__":
     with APP.app_context():
