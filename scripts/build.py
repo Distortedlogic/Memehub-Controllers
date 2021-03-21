@@ -1,4 +1,4 @@
-from src import APP
+from src.flask_app import APP
 from src.reddit.scorer import score_redditors
 from src.reddit.scraper import scrape_reddit_memes, scrape_reddit_memes_backwards
 

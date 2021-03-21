@@ -90,9 +90,7 @@ def init_static() -> Static:
             Iterator[str],
             training_db.query(MemeCorrectTrain.name).distinct(MemeCorrectTrain.name),
         )
-    ] + ["not_a_meme"]
-    if training_db.query(NotATemplateTrain).count():
-        names += ["not_a_template"]
+    ]
     names_to_shuffle = deepcopy(names)
     name_num = {name: idx for idx, name in enumerate(names)}
     num_name = {str(v): k for k, v in name_num.items()}

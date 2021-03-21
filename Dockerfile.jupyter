@@ -1,6 +1,9 @@
 FROM jupyter/minimal-notebook:7e07b801d92b
 USER root
+ENV IS_DOCKER=1
 COPY requirements.txt requirements.txt
+RUN --mount=type=cache,target=/root/.cache/pip pip install torch===1.7.1+cpu \
+  torchvision===0.8.2+cpu -f https://download.pytorch.org/whl/torch_stable.html
 RUN --mount=type=cache,target=/root/.cache/pip pip install -r requirements.txt --cache-dir /root/.cache/pip
 RUN mkdir /notebooks
 WORKDIR /notebooks

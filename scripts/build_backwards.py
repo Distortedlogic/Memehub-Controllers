@@ -1,4 +1,5 @@
-from src import APP
+
+from src.flask_app import APP
 from src.reddit.scraper import scrape_reddit_memes_backwards
 
 if __name__ == "__main__":

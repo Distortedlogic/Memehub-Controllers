@@ -32,17 +32,25 @@ class Auditor:
 
 
 def print_stats():
-    print(
-        f"""num correct - {site_db.query(RedditMeme).filter(and_(
-                cast(ClauseElement,RedditMeme.version == LOAD_VERSION),
-                cast(ClauseElement,RedditMeme.stonk_correct == True),
-            )).count()}"""
+    correct_templates = (
+        site_db.query(RedditMeme)
+        .filter(
+            and_(
+                cast(ClauseElement, RedditMeme.version == LOAD_VERSION),
+                cast(ClauseElement, RedditMeme.stonk_correct == True),
+            )
+        )
+        .count()
     )
-    print(
-        f"""num wrong - {site_db.query(RedditMeme).filter(and_(
-                cast(ClauseElement,RedditMeme.version == LOAD_VERSION),
-                cast(ClauseElement,RedditMeme.stonk_correct == False),
-            )).count()}"""
+    wrong_templates = (
+        site_db.query(RedditMeme)
+        .filter(
+            and_(
+                cast(ClauseElement, RedditMeme.version == LOAD_VERSION),
+                cast(ClauseElement, RedditMeme.stonk_correct == False),
+            )
+        )
+        .count()
     )
 
 
@@ -75,6 +83,7 @@ def update_meme(meme: RedditMeme, prev_ids: List[int]) -> Union[bool, None]:
 
 def auditor(q: Any, prev_ids: List[int]):
     for meme in q:
+        clear_output()
         display_meme(meme)
         display_template(meme.meme_clf)
         if update_meme(meme, prev_ids):
@@ -106,7 +115,6 @@ def audit_reddit_stonks():
         == "c"
     ):
         for name in cast(List[str], folder_count_df.sort_values("count")["name"]):
-            print(name)
             prev_ids = auditor(
                 site_db.query(RedditMeme).filter(
                     and_(
@@ -120,7 +128,6 @@ def audit_reddit_stonks():
             )
     elif keypress == "i":
         for name in cast(List[str], folder_count_df.sort_values("count")["name"]):
-            print(name)
             prev_ids = auditor(
                 site_db.query(RedditMeme).filter(
                     and_(
@@ -234,7 +241,7 @@ def reddit_stonks():
                 )
                 meme.meme_clf = name  # type: ignore
                 meme.stonk = is_stonk  # type: ignore
-                meme.version = VERSION  # type: ignore
+                meme.version = LOAD_VERSION  # type: ignore
         site_db.commit()
         if round % 10 == 0:
             clear_output()

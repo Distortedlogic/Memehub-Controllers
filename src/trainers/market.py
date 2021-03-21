@@ -13,24 +13,32 @@ from src.utils.secondToText import secondsToText
 
 
 class MarketTrainer:
-    def __init__(self, fresh: bool = False, version: str = TRAINING_VERSION):
+    def __init__(self, version: str = TRAINING_VERSION):
+        if input("Want a fresh market?"):
+            fresh = True
+        else:
+            fresh = False
         self.smd = get_smd(fresh, version)
         self.names = get_static_names(version)["names"]
-        self.fresh = fresh
 
     def train(self, test: bool = False) -> None:
+        if input("Want fresh models?"):
+            fresh = True
+        else:
+            fresh = False
         self.begin = time()
         self.now = time()
         names_done = list(self.smd["name_acc"].keys())
         keypress = ""
         for name in filter(lambda x: x not in names_done, self.names):
             self.smd["name_acc"][name] = 0
-            trainer = StonkTrainer(name, self.fresh)
+            trainer = StonkTrainer(name, fresh)
             for cp in trainer.train(10):
                 self.smd["name_acc"][name] = max(
                     cp["max_acc"], self.smd["name_acc"][name]
                 )
-                break
+                if cp["max_acc"] > 0.99:
+                    break
             dump_smd(self.smd)
             self.print_stats()
             if test and keypress != "c" and (keypress := trainer.test_model()):

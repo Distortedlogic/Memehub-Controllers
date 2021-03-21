@@ -37,12 +37,6 @@ click == 7.1.2
 # C:\github\Memehub\controllers\scripts\hive.py: 10
 python-decouple == 3.3
 
-# C:\github\Memehub\controllers\controller\generated\models.py: 3
-flask-sqlalchemy == 2.4.4
-
-# C:\github\Memehub\controllers\config\flask.py: 5
-get-docker-secret == 1.0.1
-
 # C:\github\Memehub\controllers\controller\reddit\controller.py: 4,13
 # C:\github\Memehub\controllers\controller\reddit\functions\dataframe.py: 5
 # C:\github\Memehub\controllers\controller\reddit\functions\misc.py: 2
@@ -99,8 +93,6 @@ celery-singleton == 0.3.0
 ml2rt == 0.2.0
 boto3
 
-torch
-torchvision
 matplotlib
 
 beautifulsoup4 == 4.9.3

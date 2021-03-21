@@ -5,6 +5,7 @@ services:
       build: .
       container_name: flask
       restart: on-failure
+      command: sh /start.sh
       volumes:
         - .:/app
       ports:
@@ -13,7 +14,7 @@ services:
     image: distortedlogic/flask:latest
     container_name: celery
     restart: on-failure
-    command: celery -A src.CELERY worker -B -l info
+    command: celery -A src.celery_app.CELERY worker -B -l info
     volumes:
       - .:/app
   notebook:

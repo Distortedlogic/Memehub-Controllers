@@ -12,9 +12,15 @@ from bs4.element import ResultSet
 from decouple import config
 from pathlib2 import Path
 from sqlalchemy.sql.elements import ClauseElement
-from src.constants import (ALT_NAMES, BLANKS_REPO, DONT_USE_TEMPLATES,
-                           IMGFLIP_TEMPALTE_URI, MEMES_TO_USE,
-                           REPLICATED_TEMPLATES_GROUPED, USER_TEMPLATES)
+from src.constants import (
+    ALT_NAMES,
+    BLANKS_REPO,
+    DONT_USE_TEMPLATES,
+    IMGFLIP_TEMPALTE_URI,
+    MEMES_TO_USE,
+    REPLICATED_TEMPLATES_GROUPED,
+    USER_TEMPLATES,
+)
 from src.schema import Template
 from src.session import training_db
 from src.utils.aws_s3 import upload_to_aws

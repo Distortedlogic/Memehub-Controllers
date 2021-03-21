@@ -1,6 +1,6 @@
 import click
-from src import APP
-from src.stonks.updater import update
+from src.flask_app import APP
+from src.site.updater import update
 
 
 @click.group()

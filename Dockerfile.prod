@@ -33,4 +33,4 @@ ENV FLASK_ENV=$FLASK_ENV \
   reddit_oauth_6=$reddit_oauth_6 \
   reddit_oauth_7=$reddit_oauth_7 
 
-CMD gunicorn -c "python:config.gunicorn" "src:APP"
+CMD gunicorn -c "python:config.gunicorn" "src:flask_app.APP"

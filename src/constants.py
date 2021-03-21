@@ -2,10 +2,9 @@ from pathlib import Path
 from typing import Dict, List, cast
 
 import arrow
-from pathlib2 import Path
 
 LOAD_VERSION = "0.3.0"
-TRAINING_VERSION = "0.3.0"
+TRAINING_VERSION = "0.4.0"
 
 MONTH_TD = 60 * 60 * 24 * 30
 WEEK_TD = 60 * 60 * 24 * 7

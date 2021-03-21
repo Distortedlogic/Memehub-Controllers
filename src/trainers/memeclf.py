@@ -1,43 +1,21 @@
-import json
 import random
 import time
-from typing import Any, Callable, Dict, Iterator, List, Tuple, Union, cast
+from typing import Any, Callable, Dict, Iterator, List, Tuple, cast
 
-import arrow
-import boto3
-import matplotlib.pyplot as plt
-import numpy as np
-import pandas as pd
 import torch
 import torch.cuda as cuda
 import torch.nn as nn
-from decouple import config
 from IPython.core.display import clear_output
 from IPython.display import display
-from pandas.core.series import Series
 from PIL import Image as Img
 from sqlalchemy.sql.elements import ClauseElement
 from sqlalchemy.sql.expression import and_
 from src.constants import TRAINING_VERSION
-from src.schema import (
-    MemeCorrectTest,
-    MemeCorrectTrain,
-    NotAMemeTest,
-    NotAMemeTrain,
-    NotATemplateTest,
-    NotATemplateTrain,
-)
+from src.schema import MemeCorrectTest, MemeCorrectTrain
 from src.session import training_db
-from src.utils.data_folders import name_to_img_count
-from src.utils.display import display_df
-from src.utils.model_func import (
-    TestTrainToMax,
-    avg_n,
-    check_point,
-    get_static_names,
-    load_cp,
-)
-from src.utils.secondToText import secondsToText
+from src.trainers.trainer import Trainer
+from src.utils.display import display_template
+from src.utils.model_func import TestTrainToMax, check_point
 from torch import cuda
 from torch.optim import SGD
 from torch.utils.data.dataloader import DataLoader
@@ -51,10 +29,6 @@ transformations: Callable[..., torch.Tensor] = transforms.Compose(
         # transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]),
     ]
 )
-s3 = boto3.resource(
-    "s3", aws_access_key_id=config("AWS_ID"), aws_secret_access_key=config("AWS_KEY")
-)
-bucket = s3.Bucket("memehub")
 device = torch.device("cuda:0" if cuda.is_available() else "cpu")
 
 
@@ -114,33 +88,20 @@ class MemeClfSet(IterableDataset[Dataset[torch.Tensor]]):
         self.names_to_shuffle = names_to_shuffle
         if is_validation:
             self.meme_entity = MemeCorrectTest
-            self.not_a_meme_entity = NotAMemeTest
-            self.not_a_template_entity = NotATemplateTest
             self.max_name_idx = max_name_idx["test"]
         else:
             self.meme_entity = MemeCorrectTrain
-            self.not_a_meme_entity = NotAMemeTrain
-            self.not_a_template_entity = NotATemplateTrain
             self.max_name_idx = max_name_idx["train"]
 
     def __iter__(self):
         random.shuffle(self.names_to_shuffle)
         for name in self.names_to_shuffle:
-            if name == "not_a_meme":
-                entity = self.not_a_meme_entity
-                rand = random.randint(0, self.max_name_idx["not_a_meme"])
-                clause = cast(ClauseElement, entity.name_idx == rand)
-            elif name == "not_a_template":
-                entity = self.not_a_template_entity
-                rand = random.randint(0, self.max_name_idx["not_a_template"])
-                clause = cast(ClauseElement, entity.name_idx == rand)
-            else:
-                entity = self.meme_entity
-                rand = random.randint(0, self.max_name_idx["correct"][name])
-                clause = and_(
-                    cast(ClauseElement, entity.name == name),
-                    cast(ClauseElement, entity.name_idx == rand),
-                )
+            entity = self.meme_entity
+            rand = random.randint(0, self.max_name_idx["correct"][name])
+            clause = and_(
+                cast(ClauseElement, entity.name == name),
+                cast(ClauseElement, entity.name_idx == rand),
+            )
             path = cast(
                 Tuple[str], training_db.query(entity.path).filter(clause).first()
             )[0]
@@ -150,16 +111,11 @@ class MemeClfSet(IterableDataset[Dataset[torch.Tensor]]):
             )
 
 
-class MemeClfTrainer:
+class MemeClfTrainer(Trainer):
     def __init__(self, version: str = TRAINING_VERSION) -> None:
         self.patience = 0
-        if input("Do you want fresh?") == "y":
-            self.fresh = True
-        else:
-            self.fresh = False
-        self.cp = load_cp("meme_clf", version, self.fresh)
-        self.static = get_static_names(version)
-        self.model = self.get_model().to(device)
+        super(MemeClfTrainer, self).__init__("meme_clf", version)
+        self.model: MemeClf = self.get_model().to(device)
 
     def train_epoch(self, dataset: MemeClfSet, batch_size: int, num_workers: int):
         for (inputs, labels) in cast(
@@ -189,7 +145,7 @@ class MemeClfTrainer:
         self.trigger2 = trigger2
         self.finish = finish
         self.losses: List[float] = []
-        self.begin = time.time()
+        self.begin = int(time.time())
         self.now = time.time()
         if self.cp["max_acc"] <= self.trigger1:
             self.train_full()
@@ -317,7 +273,7 @@ class MemeClfTrainer:
                 image = transforms.ToPILImage()(image).convert("RGB")
                 print("Meme/Template")
                 _ = display(image)
-                self.display_template(name)
+                display_template(name)
             if (
                 self.manual
                 and (
@@ -361,124 +317,3 @@ class MemeClfTrainer:
 
     def humanize_pred(self, pred: int) -> str:
         return self.static["num_name"][str(pred)]
-
-    def print_stats(self) -> None:
-        self.display_cp()
-        num_left = self.num_epochs - self.epoch
-        eta = (self.cp["total_time"] * num_left) // self.cp["iteration"]
-        print(
-            json.dumps(
-                dict(
-                    timestamp=cast(str, arrow.utcnow().to("local").format("HH:mm:ss")),
-                    model_runtime=secondsToText(self.model_runtime),
-                    uptime=secondsToText(self.uptime),
-                    total_time=secondsToText(self.cp["total_time"]),
-                    eta=secondsToText(eta),
-                ),
-                indent=0,
-            )[1:-1].replace('"', "")
-        )
-        self.print_graphs()
-
-    def update_cp(self) -> None:
-        self.model_runtime = int(time.time() - self.now)
-        self.correct, self.total = self.get_num_correct(is_validation=False)
-        new_acc = self.correct / self.total
-        new_loss: float = np.mean(self.losses)
-        self.losses: List[float] = []
-        self.cp["min_loss"] = min(new_loss, self.cp["min_loss"])
-        self.cp["loss_history"].append(new_loss)
-        self.cp["acc_history"].append(new_acc)
-        val_correct, val_total = self.get_num_correct(is_validation=True)
-        new_val_acc = val_correct / val_total
-        self.cp["val_acc_history"].append(new_val_acc)
-        if new_val_acc > self.cp["max_val_acc"]:
-            self.cp["max_val_acc"] = new_val_acc
-        self.cp["iteration"] += 1
-        self.uptime = int(cast(float, np.round(time.time() - self.begin)))
-        self.cp["total_time"] += np.round(time.time() - self.now)
-        if new_acc > self.cp["max_acc"]:
-            self.cp["max_acc"] = new_acc
-            self.patience = 0
-            check_point(self.model, self.cp)
-        else:
-            self.patience += 1
-            self.cp["max_patience"] = max(self.patience, self.cp["max_patience"])
-        self.now = time.time()
-
-    def display_cp(self) -> None:
-        display_df(
-            pd.DataFrame.from_records(
-                [
-                    dict(
-                        name=self.cp["name"],
-                        iteration=self.cp["iteration"],
-                        num_correct=f"{self.correct}/{self.total}",
-                        current_acc=self.cp["acc_history"][-1],
-                        current_val_acc=self.cp["val_acc_history"][-1],
-                        patience=self.patience,
-                        max_acc=self.cp["max_acc"],
-                        max_val_acc=self.cp["max_val_acc"],
-                        max_patience=self.cp["max_patience"],
-                        min_loss=self.cp["min_loss"],
-                        num_left=self.num_epochs - self.epoch,
-                        version=self.cp["version"],
-                    )
-                ]
-            )
-        )
-
-    def display_wrong_names(self) -> None:
-        df = pd.DataFrame(
-            list(self.get_wrong_names().items()), columns=["name", "num_wrong"]
-        )
-        df = df[df["num_wrong"] != 0]
-        df["img_count"] = cast(Series[str], df["name"]).apply(name_to_img_count)
-        display_df(df.sort_values("num_wrong", ascending=False))
-
-    def display_template(self, name: Union[str, bool]):
-        try:
-            object = bucket.Object(
-                "memehub/templates/" + self.cp["name"]
-                if isinstance(name, bool)
-                else name
-            )
-            response = object.get()
-            file_stream = response["Body"]
-            template = Img.open(file_stream)
-            _ = display(template)
-        except:
-            pass
-
-    def summary(self):
-        self.print_stats()
-        self.print_graphs()
-
-    def print_graphs(self) -> None:
-        avg = len(self.cp["acc_history"]) // 100 + 1
-        avg_loss_history = avg_n(self.cp["loss_history"], avg)
-        avg_acc_history = avg_n(self.cp["acc_history"], avg)
-        avg_val_acc_history = avg_n(self.cp["val_acc_history"], avg)
-        # plt.figure(figsize=(14, 5))
-        # plt.ticklabel_format(style="plain", useOffset=False)
-        fig, ax = plt.subplots(nrows=2, ncols=4, figsize=(20, 6))
-        fig.tight_layout()
-        ax[0, 0].plot(range(len(avg_loss_history)), avg_loss_history)
-        ax[1, 0].plot(range(len(avg_acc_history)), avg_acc_history)
-        ax[1, 1].plot(range(len(avg_val_acc_history)), avg_val_acc_history)
-        ax[0, 0].grid()
-        ax[1, 0].grid()
-        ax[1, 1].grid()
-        ax[0, 0].set_title("Loss Full")
-        ax[1, 0].set_title("Accuracy Full")
-        ax[1, 1].set_title("Validation Accuracy Full")
-        ax[0, 2].plot(range(100), self.cp["loss_history"][-100:])
-        ax[1, 2].plot(range(100), self.cp["acc_history"][-100:])
-        ax[1, 3].plot(range(100), self.cp["val_acc_history"][-100:])
-        ax[0, 2].grid()
-        ax[1, 2].grid()
-        ax[1, 3].grid()
-        ax[0, 2].set_title("Loss End")
-        ax[1, 2].set_title("Accuracy End")
-        ax[1, 3].set_title("Validation Accuracy End")
-        plt.show()

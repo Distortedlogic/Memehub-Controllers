@@ -1,4 +1,5 @@
 import boto3
+import pandas as pd
 from decouple import config
 from IPython.display import display
 from pandas import option_context
@@ -37,7 +38,5 @@ def display_meme(meme: RedditMeme):
     except:
         site_db.delete(meme)
         return
-    print(f"meme_clf - {meme.meme_clf}")
-    print(f"stonk - {meme.stonk}")
-    print("Meme/Template")
+    display_df(pd.DataFrame([("meme_clf", meme.meme_clf), ("stonk", meme.stonk)]))
     _ = display(image)

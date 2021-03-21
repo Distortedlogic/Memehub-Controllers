@@ -1,15 +1,10 @@
 import random
 import time
 from random import shuffle
-from typing import Any, Callable, Iterator, List, Tuple, Union, cast
+from typing import Any, Callable, Iterator, Tuple, Union, cast
 
-import boto3
-import matplotlib.pyplot as plt
-import numpy as np
-import pandas as pd
 import torch
 import torch.nn as nn
-from decouple import config
 from IPython.core.display import clear_output
 from IPython.display import display
 from PIL import Image as Img
@@ -21,21 +16,11 @@ from src.schema import (
     MemeCorrectTrain,
     MemeIncorrectTest,
     MemeIncorrectTrain,
-    NotAMemeTest,
-    NotAMemeTrain,
-    NotATemplateTest,
-    NotATemplateTrain,
 )
 from src.session import training_db
-from src.utils.display import display_df, display_template
-from src.utils.model_func import (
-    CP,
-    Static,
-    avg_n,
-    check_point,
-    get_static_names,
-    load_cp,
-)
+from src.trainers.trainer import Trainer
+from src.utils.display import display_template
+from src.utils.model_func import CP, Static
 from torch import Tensor, cuda
 from torch.nn import BCELoss
 from torch.optim import SGD
@@ -43,15 +28,7 @@ from torch.utils.data.dataloader import DataLoader
 from torch.utils.data.dataset import Dataset, IterableDataset
 from torchvision import transforms
 
-s3 = boto3.resource(
-    "s3", aws_access_key_id=config("AWS_ID"), aws_secret_access_key=config("AWS_KEY")
-)
-bucket = s3.Bucket("memehub")
-
 device = torch.device("cuda:0" if cuda.is_available() else "cpu")
-
-
-plot_limit = 1000
 transformations: Callable[..., torch.Tensor] = transforms.Compose(
     [
         transforms.ToTensor(),
@@ -61,10 +38,10 @@ transformations: Callable[..., torch.Tensor] = transforms.Compose(
 
 
 class Stonk(nn.Module):
-    def __init__(self):
+    def __init__(self, size: int):
         super(Stonk, self).__init__()
         self.features_to_stonk = nn.Sequential(
-            nn.Flatten(), nn.Linear(25088, 100), nn.Linear(100, 1), nn.Sigmoid(),
+            nn.Flatten(), nn.Linear(25088, size), nn.Linear(size, 1), nn.Sigmoid(),
         )
         self.stonk_opt = SGD(
             self.features_to_stonk.parameters(),
@@ -81,19 +58,17 @@ class Stonk(nn.Module):
 
     def train_step(self, batch: torch.Tensor, labels: torch.Tensor) -> float:
         self.stonk_opt.zero_grad()
-        pred = self.forward(batch)
-        stonk_loss = self.loss_func(pred, labels)
+        stonk_loss = self.loss_func(self.forward(batch), labels)
         stonk_loss.backward(torch.ones_like(stonk_loss))
         _ = self.stonk_opt.step()
         loss = cast(float, stonk_loss.mean().detach().cpu().item())
         return loss
 
 
-class StonkTrainer:
+class StonkTrainer(Trainer):
     def __init__(self, name: str, fresh: bool, version: str = TRAINING_VERSION):
         self.fresh = fresh
-        self.cp = load_cp(name, version, fresh)
-        self.static = get_static_names(version)
+        super(StonkTrainer, self).__init__(name, version)
         self.patience = 0
         try:
             self.features: nn.Module = torch.load(
@@ -104,7 +79,8 @@ class StonkTrainer:
                 MODELS_REPO + f"{version}/reg/features_backup.pt"
             ).to(device)
         self.features = self.features.eval()
-        self.model = self.get_model().to(device)
+        size = 1000 if name in ["not_a_meme", "not_a_template"] else 100
+        self.model = self.get_model(size).to(device)
 
     def get_num_correct(self, is_validation: bool) -> Tuple[int, int]:
         with torch.no_grad():
@@ -127,7 +103,7 @@ class StonkTrainer:
 
     def train(self, num_epochs: int = 1000) -> Iterator[CP]:
         self.num_epochs = num_epochs
-        self.begin = time.time()
+        self.begin = int(time.time())
         self.now = time.time()
         self.losses = []
         for self.epoch in range(1, num_epochs):
@@ -149,7 +125,6 @@ class StonkTrainer:
                         )
                     )
             self.update_cp()
-            check_point(self.model, self.cp)
             clear_output()
             self.print_stats()
             yield self.cp
@@ -202,9 +177,9 @@ class StonkTrainer:
             )
             return self.humanize_pred(pred)
 
-    def get_model(self) -> Stonk:
+    def get_model(self, size: int) -> Stonk:
         if self.fresh:
-            model = Stonk()
+            model = Stonk(size)
         else:
             try:
                 model: Stonk = torch.load(self.cp["path"].format("reg") + ".pt")
@@ -214,7 +189,7 @@ class StonkTrainer:
                         self.cp["path"].format("reg") + "_backup.pt"
                     )
                 except:
-                    model = Stonk()
+                    model = Stonk(size)
         return model
 
     @staticmethod
@@ -225,84 +200,6 @@ class StonkTrainer:
         clear_output()
         self.display_cp()
 
-    def update_cp(self) -> None:
-        self.model_runtime = int(time.time() - self.now)
-        self.correct, self.total = self.get_num_correct(is_validation=False)
-        new_acc = self.correct / self.total
-        new_loss: float = np.mean(self.losses)
-        self.losses: List[float] = []
-        self.cp["min_loss"] = min(new_loss, self.cp["min_loss"])
-        self.cp["loss_history"].append(new_loss)
-        if new_acc > self.cp["max_acc"]:
-            self.cp["max_acc"] = new_acc
-            self.patience = 0
-        else:
-            self.patience += 1
-            self.cp["max_patience"] = max(self.patience, self.cp["max_patience"])
-        self.cp["acc_history"].append(new_acc)
-        val_correct, val_total = self.get_num_correct(is_validation=True)
-        new_val_acc = val_correct / val_total
-        self.cp["val_acc_history"].append(new_val_acc)
-        if new_val_acc > self.cp["max_val_acc"]:
-            self.cp["max_val_acc"] = new_val_acc
-        self.cp["iteration"] += 1
-        self.uptime = int(cast(float, np.round(time.time() - self.begin)))
-        self.cp["total_time"] += np.round(time.time() - self.now)
-        self.now = time.time()
-
-    def display_cp(self) -> None:
-        display_df(
-            pd.DataFrame.from_records(
-                [
-                    dict(
-                        name=self.cp["name"],
-                        iteration=self.cp["iteration"],
-                        num_correct=f"{self.correct}/{self.total}",
-                        current_acc=self.cp["acc_history"][-1],
-                        current_val_acc=self.cp["val_acc_history"][-1],
-                        patience=self.patience,
-                        max_acc=self.cp["max_acc"],
-                        max_val_acc=self.cp["max_val_acc"],
-                        max_patience=self.cp["max_patience"],
-                        min_loss=self.cp["min_loss"],
-                        num_left=self.num_epochs - self.epoch,
-                        version=self.cp["version"],
-                    )
-                ]
-            )
-        )
-
-    def summary(self):
-        self.print_stats()
-        self.print_graphs()
-
-    def print_graphs(self) -> None:
-        avg = len(self.cp["acc_history"]) // 100 + 1
-        avg_loss_history = avg_n(self.cp["loss_history"], avg)
-        avg_acc_history = avg_n(self.cp["acc_history"], avg)
-        avg_val_acc_history = avg_n(self.cp["val_acc_history"], avg)
-        # plt.figure(figsize=(14, 5))
-        # plt.ticklabel_format(style="plain", useOffset=False)
-        fig, ax = plt.subplots(nrows=2, ncols=2, figsize=(10, 6))
-        fig.tight_layout()
-        ax[0, 0].plot(
-            range(len(avg_loss_history[-plot_limit:])), avg_loss_history[-plot_limit:],
-        )
-        ax[1, 0].plot(
-            range(len(avg_acc_history[-plot_limit:])), avg_acc_history[-plot_limit:]
-        )
-        ax[1, 1].plot(
-            range(len(avg_val_acc_history[-plot_limit:])),
-            avg_val_acc_history[-plot_limit:],
-        )
-        ax[0, 0].grid()
-        ax[1, 0].grid()
-        ax[1, 1].grid()
-        ax[0, 0].set_title("Loss")
-        ax[1, 0].set_title("Accuracy")
-        ax[1, 1].set_title("Validation Accuracy")
-        plt.show()
-
 
 class StonkSet(IterableDataset[Dataset[torch.Tensor]]):
     def __init__(self, cp: CP, static: Static, is_validation: bool):
@@ -312,32 +209,14 @@ class StonkSet(IterableDataset[Dataset[torch.Tensor]]):
         if is_validation:
             self.correct_entity = MemeCorrectTest
             self.incorrect_entity = MemeIncorrectTest
-            self.not_a_meme_entity = NotAMemeTest
-            self.not_a_template_entity = NotATemplateTest
-            if self.name == "not_a_meme":
-                self.my_max_correct = max_name_idx["test"]["not_a_meme"]
-                self.my_max_incorrect = 0
-            elif self.name == "not_a_template":
-                self.my_max_correct = max_name_idx["test"]["not_a_template"]
-                self.my_max_incorrect = 0
-            else:
-                self.my_max_correct = max_name_idx["test"]["correct"][self.name]
-                self.my_max_incorrect = max_name_idx["test"]["incorrect"][self.name]
+            self.my_max_correct = max_name_idx["test"]["correct"][self.name]
+            self.my_max_incorrect = max_name_idx["test"]["incorrect"][self.name]
             self.max_name_idx = max_name_idx["test"]
         else:
             self.correct_entity = MemeCorrectTrain
             self.incorrect_entity = MemeIncorrectTrain
-            self.not_a_meme_entity = NotAMemeTrain
-            self.not_a_template_entity = NotATemplateTrain
-            if self.name == "not_a_meme":
-                self.my_max_correct = max_name_idx["train"]["not_a_meme"]
-                self.my_max_incorrect = 0
-            elif self.name == "not_a_template":
-                self.my_max_correct = max_name_idx["train"]["not_a_template"]
-                self.my_max_incorrect = 0
-            else:
-                self.my_max_correct = max_name_idx["train"]["correct"][self.name]
-                self.my_max_incorrect = max_name_idx["train"]["incorrect"][self.name]
+            self.my_max_correct = max_name_idx["train"]["correct"][self.name]
+            self.my_max_incorrect = max_name_idx["train"]["incorrect"][self.name]
             self.max_name_idx = max_name_idx["train"]
         self.cpb = 1 / 4
         if self.my_max_incorrect:
@@ -384,26 +263,18 @@ class StonkSet(IterableDataset[Dataset[torch.Tensor]]):
         )
 
     def get_correct(self) -> Tuple[Tensor, int]:
+        entity = self.correct_entity
+        rand = random.randint(0, self.my_max_correct)
+        clause = and_(
+            cast(ClauseElement, entity.name == self.name),
+            cast(ClauseElement, entity.name_idx == rand),
+        )
         return (
             transformations(
                 Img.open(
                     cast(
                         Tuple[str],
-                        training_db.query(self.correct_entity.path)
-                        .filter(
-                            and_(
-                                cast(
-                                    ClauseElement,
-                                    self.correct_entity.name == self.name,
-                                ),
-                                cast(
-                                    ClauseElement,
-                                    self.correct_entity.name_idx
-                                    == random.randint(0, self.my_max_correct),
-                                ),
-                            )
-                        )
-                        .first(),
+                        training_db.query(entity.path).filter(clause).first(),
                     )[0]
                 )
             ),
@@ -412,21 +283,12 @@ class StonkSet(IterableDataset[Dataset[torch.Tensor]]):
 
     def get_assortment(self):
         image_name = self.names.pop()
-        if image_name == "not_a_meme":
-            entity = self.not_a_meme_entity
-            rand = random.randint(0, self.max_name_idx["not_a_meme"])
-            clause = cast(ClauseElement, entity.name_idx == rand)
-        elif image_name == "not_a_tempalte":
-            entity = self.not_a_template_entity
-            rand = random.randint(0, self.max_name_idx["not_a_template"])
-            clause = cast(ClauseElement, entity.name_idx == rand)
-        else:
-            entity = self.correct_entity
-            rand = random.randint(0, self.max_name_idx["correct"][image_name])
-            clause = and_(
-                cast(ClauseElement, entity.name == image_name),
-                cast(ClauseElement, entity.name_idx == rand),
-            )
+        entity = self.correct_entity
+        rand = random.randint(0, self.max_name_idx["correct"][image_name])
+        clause = and_(
+            cast(ClauseElement, entity.name == image_name),
+            cast(ClauseElement, entity.name_idx == rand),
+        )
         p = cast(Tuple[str], training_db.query(entity.path).filter(clause).first())[0]
         return (transformations(Img.open(p)), 1 if image_name == self.name else 0)
 

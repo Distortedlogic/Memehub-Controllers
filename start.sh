@@ -1,5 +1,4 @@
 #!/bin/bash
 pip install -e .
-mh load base
-mh load stonks
-gunicorn -c "python:config.gunicorn" "src:APP"
+mh load stonk-market
+gunicorn -c "python:config.gunicorn" "src.flask_app:APP"

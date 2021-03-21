@@ -1,4 +1,4 @@
-from src import CELERY
+from src.celery_app import CELERY
 from src.reddit.scorer import score_redditors
 from src.reddit.scraper import scrape_reddit_memes
 

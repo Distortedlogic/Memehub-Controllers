@@ -1,4 +1,3 @@
-import json
 from typing import List, cast
 
 import numpy as np
