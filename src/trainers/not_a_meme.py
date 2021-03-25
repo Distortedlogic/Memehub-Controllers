@@ -9,7 +9,7 @@ from IPython.core.display import clear_output
 from PIL import Image as Img
 from sqlalchemy.sql.elements import ClauseElement
 from sqlalchemy.sql.expression import and_
-from src.constants import TRAINING_VERSION
+from src.constants import NOT_A_MEME_MODEL_REPO
 from src.schema import (
     MemeCorrectTest,
     MemeCorrectTrain,
@@ -20,7 +20,7 @@ from src.schema import (
 )
 from src.session import training_db
 from src.trainers.trainer import Trainer
-from src.utils.model_func import TestTrainToMax, check_point
+from src.utils.model_func import TestTrainToMax
 from torch import cuda
 from torch.nn import BCELoss
 from torch.optim import SGD
@@ -53,7 +53,7 @@ class NotAMemeClf(nn.Module):
         )
         self.features_opt = SGD(
             self.features.parameters(),
-            lr=0.01,
+            lr=0.001,
             momentum=0.9,
             dampening=0,
             weight_decay=0,
@@ -61,7 +61,7 @@ class NotAMemeClf(nn.Module):
         )
         self.dense_opt = SGD(
             self.dense.parameters(),
-            lr=0.01,
+            lr=0.001,
             momentum=0.9,
             dampening=0,
             weight_decay=0,
@@ -161,9 +161,14 @@ class NotAMemeClfSet(IterableDataset[Dataset[torch.Tensor]]):
 
 
 class NotAMemeClfTrainer(Trainer):
-    def __init__(self, version: str = TRAINING_VERSION) -> None:
+    def __init__(self) -> None:
         self.patience = 0
-        super(NotAMemeClfTrainer, self).__init__("not_a_meme_clf", version)
+        self.name = "not_a_meme"
+        if input("Do you want fresh?") == "y":
+            self.fresh = True
+        else:
+            self.fresh = False
+        super(NotAMemeClfTrainer, self).__init__()
         self.model: NotAMemeClf = self.get_model().to(device)
 
     def train_epoch(self, dataset: NotAMemeClfSet, batch_size: int, num_workers: int):
@@ -202,7 +207,6 @@ class NotAMemeClfTrainer(Trainer):
                 self.num_workers,
             )
             self.update_cp()
-            check_point(self.model, self.cp)
             clear_output()
             self.print_stats()
 
@@ -240,13 +244,15 @@ class NotAMemeClfTrainer(Trainer):
             model = NotAMemeClf()
         else:
             try:
-                model: NotAMemeClf = torch.load(self.cp["path"].format("reg") + ".pt")
-            except:
+                model: NotAMemeClf = torch.load(
+                    NOT_A_MEME_MODEL_REPO.format("reg") + self.name + ".pt"
+                )
+            except Exception:
                 try:
                     model: NotAMemeClf = torch.load(
-                        self.cp["path"].format("reg") + "_backup.pt"
+                        NOT_A_MEME_MODEL_REPO.format("reg") + self.name + "_backup.pt"
                     )
-                except:
+                except Exception:
                     model = NotAMemeClf()
         return model
 

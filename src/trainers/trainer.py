@@ -1,4 +1,3 @@
-import json
 import time
 from typing import Any, List, Tuple, cast
 
@@ -7,20 +6,18 @@ import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 from pandas.core.series import Series
+from src.constants import MEME_CLF_VERSION
 from src.utils.data_folders import name_to_img_count
-from src.utils.display import display_df
-from src.utils.model_func import avg_n, check_point, get_static_names, load_cp
+from src.utils.display import display_df, pretty_print_dict
+from src.utils.model_func import CP, avg_n, get_static_names
 from src.utils.secondToText import secondsToText
 
 
 class Trainer:
-    def __init__(self, name: str, version: str):
-        if input("Do you want fresh?") == "y":
-            self.fresh = True
-        else:
-            self.fresh = False
-        self.cp = load_cp(name, version, self.fresh)
-        self.static = get_static_names(version)
+    def __init__(self):
+        self.static = get_static_names(MEME_CLF_VERSION)
+        self.name: str
+        self.cp: CP
         self.correct: int
         self.total: int
         self.patience: int
@@ -32,47 +29,55 @@ class Trainer:
     def get_num_correct(self, is_validation: bool) -> Tuple[int, int]:
         raise NotImplementedError
 
-    def update_cp(self) -> None:
-        self.model_runtime = int(time.time() - self.now)
-        self.correct, self.total = self.get_num_correct(is_validation=False)
-        new_acc = self.correct / self.total
+    def check_point(self) -> None:
+        raise NotImplementedError
+
+    def hard_reset(self) -> bool:
+        return False
+
+    def update_loss(self):
         new_loss: float = np.mean(self.losses)
         self.losses: List[float] = []
         self.cp["min_loss"] = min(new_loss, self.cp["min_loss"])
         self.cp["loss_history"].append(new_loss)
-        self.cp["acc_history"].append(new_acc)
-        val_correct, val_total = self.get_num_correct(is_validation=True)
-        new_val_acc = val_correct / val_total
+
+    def update_cp(self) -> None:
+        self.correct, self.total = self.get_num_correct(is_validation=False)
+        self.new_acc = self.correct / self.total
+        if self.new_acc > self.cp["max_acc"]:
+            self.cp["max_acc"] = self.new_acc
+        self.cp["acc_history"].append(self.new_acc)
+        self.model_runtime = int(time.time() - self.now)
+        self.uptime = round(time.time() - self.begin)
+        self.cp["total_time"] += round(time.time() - self.now)
+        self.now = int(time.time())
+        self.cp["iteration"] += 1
+        self.update_loss()
+        self.val_correct, self.val_total = self.get_num_correct(is_validation=True)
+        new_val_acc = self.val_correct / self.val_total
         self.cp["val_acc_history"].append(new_val_acc)
+        if self.hard_reset():
+            return
         if new_val_acc > self.cp["max_val_acc"]:
             self.cp["max_val_acc"] = new_val_acc
-        self.cp["iteration"] += 1
-        self.uptime = int(cast(float, np.round(time.time() - self.begin)))
-        self.cp["total_time"] += np.round(time.time() - self.now)
-        if new_acc > self.cp["max_acc"]:
-            self.cp["max_acc"] = new_acc
             self.patience = 0
-            check_point(self.model, self.cp)
+            self.check_point()
         else:
             self.patience += 1
             self.cp["max_patience"] = max(self.patience, self.cp["max_patience"])
-        self.now = time.time()
 
     def print_stats(self) -> None:
         self.display_cp()
         num_left = self.num_epochs - self.epoch
         eta = (self.cp["total_time"] * num_left) // self.cp["iteration"]
-        print(
-            json.dumps(
-                dict(
-                    timestamp=cast(str, arrow.utcnow().to("local").format("HH:mm:ss")),
-                    model_runtime=secondsToText(self.model_runtime),
-                    uptime=secondsToText(self.uptime),
-                    total_time=secondsToText(self.cp["total_time"]),
-                    eta=secondsToText(eta),
-                ),
-                indent=0,
-            )[1:-1].replace('"', "")
+        pretty_print_dict(
+            dict(
+                timestamp=cast(str, arrow.utcnow().to("local").format("HH:mm:ss")),
+                model_runtime=secondsToText(self.model_runtime),
+                uptime=secondsToText(self.uptime),
+                total_time=secondsToText(self.cp["total_time"]),
+                eta=secondsToText(eta),
+            )
         )
         self.print_graphs()
 
@@ -89,18 +94,18 @@ class Trainer:
             pd.DataFrame.from_records(
                 [
                     dict(
-                        name=self.cp["name"],
+                        name=self.name,
                         iteration=self.cp["iteration"],
                         num_correct=f"{self.correct}/{self.total}",
-                        current_acc=self.cp["acc_history"][-1],
+                        val_num_correct=f"{self.val_correct}/{self.val_total}",
                         current_val_acc=self.cp["val_acc_history"][-1],
-                        patience=self.patience,
-                        max_acc=self.cp["max_acc"],
                         max_val_acc=self.cp["max_val_acc"],
+                        patience=self.patience,
                         max_patience=self.cp["max_patience"],
+                        current_acc=self.cp["acc_history"][-1],
+                        max_acc=self.cp["max_acc"],
                         min_loss=self.cp["min_loss"],
                         num_left=self.num_epochs - self.epoch,
-                        version=self.cp["version"],
                     )
                 ]
             )

@@ -1,6 +1,6 @@
 import os
 from pathlib import Path
-from typing import Any, cast
+from typing import Any, List, Tuple, cast
 
 import boto3
 import click
@@ -8,14 +8,13 @@ import ml2rt
 import redisai
 from botocore.exceptions import ClientError
 from decouple import config
-from src.constants import LOAD_VERSION, MODELS_REPO
-
-JIT_REPO = MODELS_REPO + f"{LOAD_VERSION}/jit/"
-Path(JIT_REPO).mkdir(parents=True, exist_ok=True)  # type: ignore
-
-s3: Any = boto3.client(
-    "s3", aws_access_key_id=config("AWS_ID"), aws_secret_access_key=config("AWS_KEY"),
+from src.constants import (
+    LOAD_MEME_CLF_VERSION,
+    LOAD_STONK_VERSION,
+    MEME_CLF_REPO,
+    STONK_REPO,
 )
+
 s3 = boto3.resource(
     "s3", aws_access_key_id=config("AWS_ID"), aws_secret_access_key=config("AWS_KEY")
 )
@@ -45,29 +44,55 @@ def stonk_market():
     """
     Load models into redisai
     """
-    for name in list(bucket.objects.filter(Prefix=f"memehub/models/{LOAD_VERSION}")):
-        download_aws(JIT_REPO, f"{name}.pt")
+    for name in list(
+        bucket.objects.filter(Prefix=STONK_REPO.format("jit").replace("src", "memehub"))
+    ):
+        download_aws(STONK_REPO.format("jit"), f"{name}.pt")
     rai = redisai.Client(host="redis", port=6379)
-    current_stonks = [data[0] for data in rai.modelscan()]
-    names_on_disk = [
-        os.path.splitext(file)[0]
-        for file in os.listdir(MODELS_REPO + f"/{LOAD_VERSION}/jit/")
-        if "backup" not in file
-    ]
-    names_to_load = [name for name in names_on_disk if name not in current_stonks]
-    for idx, name in enumerate(names_to_load):
-        print(f"{idx}/{len(names_to_load)} - {name}")
-        model = ml2rt.load_model(JIT_REPO + f"{name}.pt")
+    current_stonks: List[str] = []
+    for name, tag in cast(Tuple[str, str], rai.modelscan()):
+        if tag in [LOAD_MEME_CLF_VERSION, LOAD_STONK_VERSION]:
+            _ = rai.modeldel(name)
+        else:
+            current_stonks.append(name)
+    for idx, name in enumerate(
+        name
+        for name in (
+            os.path.splitext(file)[0]
+            for file in os.listdir(MEME_CLF_REPO.format("jit"))
+            if "backup" not in file
+        )
+        if name not in current_stonks
+    ):
+        model = ml2rt.load_model(MEME_CLF_REPO.format("jit") + f"{name}.pt")
         _ = rai.modelset(
             name,
             backend,
             device,
             cast(Any, model),
-            tag=LOAD_VERSION,
+            tag=LOAD_MEME_CLF_VERSION,
             inputs=cast(Any, None),
             outputs=cast(Any, None),
         )
-    print("Stonks Loaded")
+        print(f"{name} Loaded")
+    names_on_disk = [
+        os.path.splitext(file)[0]
+        for file in os.listdir(STONK_REPO.format("jit"))
+        if "backup" not in file
+    ]
+    names_to_load = [name for name in names_on_disk if name not in current_stonks]
+    for idx, name in enumerate(names_to_load):
+        print(f"{idx+1}/{len(names_to_load)} - {name}")
+        model = ml2rt.load_model(STONK_REPO.format("jit") + f"{name}.pt")
+        _ = rai.modelset(
+            name,
+            backend,
+            device,
+            cast(Any, model),
+            tag=LOAD_STONK_VERSION,
+            inputs=cast(Any, None),
+            outputs=cast(Any, None),
+        )
 
 
 cli.add_command(stonk_market)

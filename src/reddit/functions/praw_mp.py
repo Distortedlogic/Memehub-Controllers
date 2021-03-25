@@ -32,11 +32,11 @@ def initializer():
         try:
             reddit = reddit_objs[worker_id]
             break
-        except:
+        except Exception:
             try:
                 reddit = init_reddit(worker_id)
                 break
-            except:
+            except Exception:
                 worker_id += 1 % NUM_REDDIT_INSTANCES
                 tries += 1
                 if tries > 2 * NUM_REDDIT_INSTANCES:
@@ -52,7 +52,7 @@ def praw_by_id(submission_id: str):
                 for filetype in [".jpg", ".jpeg", ".png"]
             ):
                 return extract_data(submission)
-    except:
+    except Exception:
         pass
 
 

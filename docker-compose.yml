@@ -17,6 +17,18 @@ services:
     command: celery -A src.celery_app.CELERY worker -B -l info
     volumes:
       - .:/app
+  celery-monitor:
+    build:
+        context: .
+        dockerfile: Dockerfile.flower
+    container_name: flower
+    entrypoint: flower
+    command: -A src.celery_app.CELERY
+    restart: on-failure
+    volumes:
+      - .:/app
+    ports:
+      - 5555:5555
   notebook:
     build:
         context: .

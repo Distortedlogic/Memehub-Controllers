@@ -42,11 +42,11 @@ def copy_folder(name: str):
     if src != dest:
         try:
             os.rename(src, dest)
-        except:
+        except Exception:
             for file in os.listdir(src):
                 try:
                     shutil.copy(src + file, dest + file)
-                except:
+                except Exception:
                     pass
 
 
@@ -97,7 +97,7 @@ def sanitize_imgnet():
             try:
                 shutil.copy(src, dest)
                 os.remove(src)
-            except:
+            except Exception:
                 pass
 
 

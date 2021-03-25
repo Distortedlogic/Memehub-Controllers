@@ -1,0 +1,9 @@
+FROM python:3.8.6-buster
+WORKDIR /app
+ENV PYTHONUNBUFFERED=1 \
+	PYTHONDONTWRITEBYTECODE=1 \
+	TERM=xterm \
+	IS_DOCKER=1
+USER root
+COPY requirements.flower.txt requirements.txt
+RUN --mount=type=cache,target=/root/.cache/pip pip install -r requirements.txt

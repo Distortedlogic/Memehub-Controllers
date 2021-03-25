@@ -14,7 +14,7 @@ def redditmeme_min_ts(subreddit: str) -> int:
             .scalar(),
         )
         return min_ts
-    except:
+    except Exception:
         return 0
 
 
@@ -27,7 +27,7 @@ def redditmeme_max_ts(subreddit: str) -> int:
             .scalar(),
         )
         return max_ts
-    except:
+    except Exception:
         return 0
 
 
@@ -40,7 +40,7 @@ def redditscore_min_ts(subreddit: str) -> int:
             .scalar(),
         )
         return min_ts
-    except:
+    except Exception:
         return 0
 
 
@@ -53,5 +53,5 @@ def redditscore_max_ts(subreddit: str) -> int:
             .scalar(),
         )
         return max_ts
-    except:
+    except Exception:
         return 0

@@ -4,7 +4,7 @@ from celery_singleton import Singleton
 
 from celery import Celery
 
-TASK_LIST = ["src.reddit.tasks"]
+TASK_LIST = ["src.reddit.tasks", "src.stonks.tasks"]
 
 
 def create_celery_app():

@@ -27,10 +27,10 @@ def isDeleted(image_cv: np.ndarray) -> bool:
     deleted_nb = cv2.imread("assets/deleted_img/image404_nb.png")
     try:
         diff = cv2.subtract(image_cv, deleted)
-    except:
+    except Exception:
         diff = True
     try:
         diff_nb = cv2.subtract(image_cv, deleted_nb)
-    except:
+    except Exception:
         diff_nb = True
     return cast(bool, np.all(diff == 0) | np.all(diff_nb == 0))

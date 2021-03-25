@@ -3,8 +3,35 @@ from typing import Dict, List, cast
 
 import arrow
 
-LOAD_VERSION = "0.3.0"
-TRAINING_VERSION = "0.4.0"
+LOAD_MEME_CLF_VERSION = "0.4.1"
+LOAD_STONK_VERSION = "0.0"
+MEME_CLF_VERSION = "0.4.1"
+STONK_VERSION = "0.0"
+NOT_A_MEME_VERSION = "0.0.1"
+
+MODELS_REPO = "src/models/"
+NOT_MEME_REPO = "src/data/not_a_meme/"
+NOT_TEMPLATE_REPO = "src/data/not_a_template/"
+MEMES_REPO = "src/data/memes/"
+INCORRECT_REPO = "src/data/incorrect/"
+BLANKS_REPO = "src/data/blanks/"
+MEME_CLF_REPO = MODELS_REPO + "market/" + MEME_CLF_VERSION + "/meme_clf/{}/"
+STONK_REPO = (
+    MODELS_REPO + "market/" + MEME_CLF_VERSION + "/stonks/" + STONK_VERSION + "/{}/"
+)
+NOT_A_MEME_MODEL_REPO = MODELS_REPO + "not_a_meme/" + NOT_A_MEME_VERSION + "/{}/"
+
+Path(MODELS_REPO).mkdir(parents=True, exist_ok=True)  # type: ignore
+Path(NOT_MEME_REPO).mkdir(parents=True, exist_ok=True)  # type: ignore
+Path(NOT_TEMPLATE_REPO).mkdir(parents=True, exist_ok=True)  # type: ignore
+Path(MEMES_REPO).mkdir(parents=True, exist_ok=True)  # type: ignore
+Path(INCORRECT_REPO).mkdir(parents=True, exist_ok=True)  # type: ignore
+Path(BLANKS_REPO).mkdir(parents=True, exist_ok=True)  # type: ignore
+
+for folder in ["reg", "jit", "cp"]:
+    Path(MEME_CLF_REPO.format(folder)).mkdir(parents=True, exist_ok=True)
+    Path(STONK_REPO.format(folder)).mkdir(parents=True, exist_ok=True)
+    Path(NOT_A_MEME_MODEL_REPO.format(folder)).mkdir(parents=True, exist_ok=True)
 
 MONTH_TD = 60 * 60 * 24 * 30
 WEEK_TD = 60 * 60 * 24 * 7
@@ -28,20 +55,6 @@ FULL_SUB_LIST = ["dankmemes", "memes"]
 
 PUSHSHIFT_URI = r"https://api.pushshift.io/reddit/search/submission?subreddit={}&after={}&before={}&size={}"
 
-MODELS_REPO = "src/models/"
-NOT_MEME_REPO = "src/data/not_a_meme/"
-NOT_TEMPLATE_REPO = "src/data/not_a_template/"
-MEMES_REPO = "src/data/memes/"
-ALL_BLANKS_REPO = "src/data/all_blanks/"
-BLANKS_REPO = "src/data/blanks/"
-INCORRECT_REPO = "src/data/incorrect/"
-Path(MODELS_REPO).mkdir(parents=True, exist_ok=True)  # type: ignore
-Path(NOT_MEME_REPO).mkdir(parents=True, exist_ok=True)  # type: ignore
-Path(NOT_TEMPLATE_REPO).mkdir(parents=True, exist_ok=True)  # type: ignore
-Path(MEMES_REPO).mkdir(parents=True, exist_ok=True)  # type: ignore
-Path(ALL_BLANKS_REPO).mkdir(parents=True, exist_ok=True)  # type: ignore
-Path(BLANKS_REPO).mkdir(parents=True, exist_ok=True)  # type: ignore
-Path(INCORRECT_REPO).mkdir(parents=True, exist_ok=True)  # type: ignore
 
 IMGFLIP_TEMPALTE_URI = "https://imgflip.com/memetemplates?page={}"
 
@@ -181,6 +194,7 @@ REPLICATED_TEMPLATES_GROUPED = [
         "drake hotline bling",
         "drake noyes",
     ],
+    ["baby yoda die trash", "baby yoda tea", "baby yoda"],
     [
         "anime butterfly meme",
         "butterfly man",
@@ -510,7 +524,6 @@ SEEN_MEMES = set(
         "spiderman glasses",
         "and everybody loses their minds",
         "blackjack and hookers",
-        "baby yoda die trash",
         "jordan peele sweating",
         "sully wazowski",
         "this is fine",
@@ -788,7 +801,6 @@ SEEN_MEMES = set(
         "simpsons so far",
         "suprised patrick",
         "salt bae",
-        "baby yoda tea",
         "see nobody cares",
         "black guy confused",
         "sure grandma lets get you to bed",

@@ -31,7 +31,7 @@ def get_to_do(fresh: bool) -> Dict[str, str]:
     for name in bad_names:
         try:
             del to_do[name]
-        except:
+        except Exception:
             pass
     with open(to_do_json, "w", encoding="utf-8") as f:
         json.dump(to_do, f, ensure_ascii=False, indent=4)
@@ -47,7 +47,7 @@ def imagenet_db_build(fresh: bool = False) -> None:
             try:
                 resp = requests.get(WNID_TO_URLS + class_wnid, timeout=60)
                 break
-            except:
+            except Exception:
                 time.sleep(5)
         print(resp.content)
         raise Exception("check")

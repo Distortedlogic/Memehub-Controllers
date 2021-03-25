@@ -30,7 +30,7 @@ def score_df(scoring: DataFrame):
     for author in authors:
         try:
             num_memes_in_bottom_filled.append(num_memes_in_bottom[author])
-        except:
+        except Exception:
             num_memes_in_bottom_filled.append(0)
 
     scores_dict: Dict[str, Any] = {}
@@ -40,7 +40,7 @@ def score_df(scoring: DataFrame):
                 num_memes_in_bottom[author] + 1
             )
             spammer_index = num_memes_in_bottom[author] / num_memes_in_top[author]
-        except:
+        except Exception:
             inv_spammer_index = num_memes_in_top[author]
             spammer_index = 0
         highest_upvotes_score: float = log(

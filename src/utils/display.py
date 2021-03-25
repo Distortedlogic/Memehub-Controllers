@@ -1,3 +1,6 @@
+import json
+from typing import Any, Dict
+
 import boto3
 import pandas as pd
 from decouple import config
@@ -21,6 +24,10 @@ def display_df(df: DataFrame):
         _ = display(df)
 
 
+def pretty_print_dict(dicty: Dict[str, Any]):
+    print(json.dumps(dicty, indent=0,)[1:-1].replace('"', "").replace(",", ""))
+
+
 def display_template(name: str):
     try:
         object = bucket.Object("memehub/templates/" + name)
@@ -28,14 +35,14 @@ def display_template(name: str):
         file_stream = response["Body"]
         template = Image.open(file_stream)
         _ = display(template)
-    except:
+    except Exception:
         pass
 
 
 def display_meme(meme: RedditMeme):
     try:
         image = transforms.ToPILImage()(load_img_from_url(meme.url))
-    except:
+    except Exception:
         site_db.delete(meme)
         return
     display_df(pd.DataFrame([("meme_clf", meme.meme_clf), ("stonk", meme.stonk)]))

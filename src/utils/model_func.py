@@ -1,14 +1,21 @@
 import json
 import os
 from copy import deepcopy
-from pathlib import Path
 from typing import Dict, Iterator, List, TypedDict, cast
 
 import numpy as np
 import torch
 from sqlalchemy.sql.elements import ClauseElement
 from sqlalchemy.sql.functions import func
-from src.constants import MEMES_REPO, MODELS_REPO, NOT_MEME_REPO, NOT_TEMPLATE_REPO
+from src.constants import (
+    MEME_CLF_VERSION,
+    MEMES_REPO,
+    MODELS_REPO,
+    NOT_MEME_REPO,
+    NOT_TEMPLATE_REPO,
+    STONK_REPO,
+    STONK_VERSION,
+)
 from src.schema import (
     MemeCorrectTest,
     MemeCorrectTrain,
@@ -20,45 +27,76 @@ from src.schema import (
     NotATemplateTrain,
 )
 from src.session import training_db
-from torch import cuda, jit, nn
-from torch._C import ScriptModule
+from torch import cuda
 
 device = torch.device("cuda:0" if cuda.is_available() else "cpu")
 
 
 class Smd(TypedDict):
-    version: str
+
     name_acc: Dict[str, float]
     total_time: int
 
 
 def dump_smd(smd: Smd):
-    with open(MODELS_REPO + f"{smd['version']}/smd.json", "w") as f:
+    with open(
+        MODELS_REPO
+        + "market/"
+        + MEME_CLF_VERSION
+        + "/stonks/"
+        + STONK_VERSION
+        + "/smd.json",
+        "w",
+    ) as f:
         json.dump(smd, f, indent=4)
-    with open(MODELS_REPO + f"{smd['version']}/smd_backup.json", "w") as f:
+    with open(
+        MODELS_REPO
+        + "market/"
+        + MEME_CLF_VERSION
+        + "/stonks/"
+        + STONK_VERSION
+        + "/smd_backup.json",
+        "w",
+    ) as f:
         json.dump(smd, f, indent=4)
 
 
-def init_smd(version: str) -> Smd:
-    return {"version": version, "name_acc": {}, "total_time": 0}
+def init_smd() -> Smd:
+    return {"name_acc": {}, "total_time": 0}
 
 
-def get_smd(fresh: bool, version: str) -> Smd:
+def get_smd(fresh: bool) -> Smd:
     if not fresh:
         try:
-            with open(MODELS_REPO + f"{version}/smd.json", "r") as f:
+            with open(
+                MODELS_REPO
+                + "market/"
+                + MEME_CLF_VERSION
+                + "/stonks/"
+                + STONK_VERSION
+                + "/smd.json",
+                "r",
+            ) as f:
                 smd = json.load(f)
-        except:
-            with open(MODELS_REPO + f"{version}/smd_backup.json", "r") as f:
+        except Exception:
+            with open(
+                MODELS_REPO
+                + "market/"
+                + MEME_CLF_VERSION
+                + "/stonks/"
+                + STONK_VERSION
+                + "/smd_backup.json",
+                "r",
+            ) as f:
                 smd = json.load(f)
-        init = init_smd(version)
+        init = init_smd()
         for prop in init.keys():
             try:
                 smd[prop]
-            except:
+            except Exception:
                 smd[prop] = init[prop]
     else:
-        smd = init_smd(version)
+        smd = init_smd()
     return smd
 
 
@@ -172,31 +210,30 @@ def init_static() -> Static:
 
 def get_static_names(version: str) -> Static:
     try:
-        with open(MODELS_REPO + f"{version}/static.json", "r") as f:
+        with open(MODELS_REPO + "market/" + f"{version}/static.json", "r") as f:
             static = json.load(f)
-    except:
+    except Exception:
         try:
-            with open(MODELS_REPO + f"{version}/static_backup.json", "r") as f:
+            with open(
+                MODELS_REPO + "market/" + f"{version}/static_backup.json", "r"
+            ) as f:
                 static = json.load(f)
-        except:
+        except Exception:
             static = init_static()
     init = init_static()
     for prop in init.keys():
         try:
             static[prop]
-        except:
+        except Exception:
             static[prop] = init[prop]
-    with open(MODELS_REPO + f"{version}/static.json", "w") as f:
+    with open(MODELS_REPO + "market/" + f"{version}/static.json", "w") as f:
         json.dump(static, f, indent=4)
-    with open(MODELS_REPO + f"{version}/static_backup.json", "w") as f:
+    with open(MODELS_REPO + "market/" + f"{version}/static_backup.json", "w") as f:
         json.dump(static, f, indent=4)
     return static
 
 
 class CP(TypedDict):
-    name: str
-    version: str
-    path: str
     iteration: int
     total_time: int
     max_acc: float
@@ -208,16 +245,9 @@ class CP(TypedDict):
     val_acc_history: List[float]
 
 
-def init_cp(name: str, version: str) -> CP:
-    path = MODELS_REPO + f"{version}" + "/{}/"
-    Path(path.format("reg")).mkdir(parents=True, exist_ok=True)
-    Path(path.format("jit")).mkdir(parents=True, exist_ok=True)
-    Path(path.format("cp")).mkdir(parents=True, exist_ok=True)
-    path += name
+def init_cp() -> CP:
+
     cp: CP = {
-        "name": name,
-        "version": version,
-        "path": path,
         "iteration": 0,
         "total_time": 0,
         "max_acc": 0,
@@ -231,62 +261,26 @@ def init_cp(name: str, version: str) -> CP:
     return cp
 
 
-def load_cp(name: str, version: str, fresh: bool) -> CP:
+def load_cp(cp_path: str, fresh: bool) -> CP:
     if not fresh:
         try:
-            with open(MODELS_REPO + f"{version}/cp/{name}.json", "r") as f:
+            with open(cp_path + f".json", "r") as f:
                 cp = json.load(f)
-        except:
+        except Exception:
             try:
-                with open(MODELS_REPO + f"{version}/cp/{name}_backup.json", "r") as f:
+                with open(cp_path + f"_backup.json", "r") as f:
                     cp = json.load(f)
-            except:
-                cp = init_cp(name, version)
-        init = init_cp(name, version)
+            except Exception:
+                cp = init_cp()
+        init = init_cp()
         for prop in init.keys():
             try:
                 cp[prop]
-            except:
+            except Exception:
                 cp[prop] = init[prop]
     else:
-        cp = init_cp(name, version)
+        cp = init_cp()
     return cp
-
-
-def check_point(model: nn.Module, cp: CP) -> None:
-    model = model.to(torch.device("cpu"))
-    if cp["name"] == "meme_clf":
-        torch.save(model.features, MODELS_REPO + cp["version"] + "/reg/features.pt")
-        torch.save(
-            model.features, MODELS_REPO + cp["version"] + "/reg/features_backup.pt",
-        )
-        jit.save(
-            cast(ScriptModule, jit.script(model.features)),
-            MODELS_REPO + cp["version"] + "/jit/features.pt",
-        )
-        jit.save(
-            cast(ScriptModule, jit.script(model.features)),
-            MODELS_REPO + cp["version"] + "/jit/features_backup.pt",
-        )
-        jit.save(
-            cast(ScriptModule, jit.script(model.dense)),
-            MODELS_REPO + cp["version"] + "/jit/dense.pt",
-        )
-        jit.save(
-            cast(ScriptModule, jit.script(model.dense)),
-            MODELS_REPO + cp["version"] + "/jit/dense_backup.pt",
-        )
-    torch.save(model, cp["path"].format("reg") + ".pt")
-    torch.save(model, cp["path"].format("reg") + "_backup.pt")
-    jit.save(cast(ScriptModule, jit.script(model)), cp["path"].format("jit") + ".pt")
-    jit.save(
-        cast(ScriptModule, jit.script(model)), cp["path"].format("jit") + "_backup.pt",
-    )
-    with open(cp["path"].format("cp") + ".json", "w") as f:
-        json.dump(cp, f, indent=4)
-    with open(cp["path"].format("cp") + "_backup.json", "w") as f:
-        json.dump(cp, f, indent=4)
-    model = model.to(torch.device("cuda:0"))
 
 
 def avg_n(listy: List[float], avg: int) -> List[float]:
