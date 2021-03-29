@@ -1,6 +1,7 @@
 import json
 import random
 import time
+from itertools import chain, repeat
 from random import shuffle
 from typing import Any, Callable, Iterator, List, Tuple, Union, cast
 
@@ -11,7 +12,7 @@ from IPython.display import display
 from PIL import Image as Img
 from sqlalchemy.sql.elements import ClauseElement
 from sqlalchemy.sql.expression import and_
-from src.constants import MEME_CLF_REPO, MEME_CLF_VERSION, MODELS_REPO, STONK_REPO
+from src.constants import MEME_CLF_REPO, STONK_REPO
 from src.schema import (
     MemeCorrectTest,
     MemeCorrectTrain,
@@ -26,6 +27,7 @@ from src.session import training_db
 from src.trainers.trainer import Trainer
 from src.utils.display import display_template
 from src.utils.model_func import CP, TestTrainToMax, load_cp
+from src.utils.transforms import toTensorOnly, trainingTransforms
 from torch import Tensor, cuda, jit
 from torch._C import ScriptModule
 from torch.nn import BCELoss
@@ -35,12 +37,6 @@ from torch.utils.data.dataset import Dataset, IterableDataset
 from torchvision import transforms
 
 device = torch.device("cuda:0" if cuda.is_available() else "cpu")
-transformations: Callable[..., torch.Tensor] = transforms.Compose(
-    [
-        transforms.ToTensor(),
-        # transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]),
-    ]
-)
 
 
 class Stonk(nn.Module):
@@ -54,7 +50,7 @@ class Stonk(nn.Module):
             lr=0.000_000_1,
             momentum=0.9,
             dampening=0,
-            weight_decay=0,
+            weight_decay=0.01,
             nesterov=True,
         )
         self.loss_func: Callable[..., torch.Tensor] = BCELoss()
@@ -87,8 +83,7 @@ class StonkTrainer(Trainer):
                 MEME_CLF_REPO.format("reg") + "features_backup.pt"
             ).to(device)
         self.features = self.features.eval()
-        size = 1000 if name in ["not_a_meme", "not_a_template"] else 100
-        self.model: Stonk = self.get_model(size).to(device)
+        self.model: Stonk = self.get_model(100).to(device)
 
     def get_num_correct(self, is_validation: bool) -> Tuple[int, int]:
         with torch.no_grad():
@@ -102,6 +97,7 @@ class StonkTrainer(Trainer):
                         self.static["names_to_shuffle"],
                         self.static["max_name_idx"],
                         is_validation=is_validation,
+                        is_training=False,
                     ),
                     batch_size=64,
                     num_workers=1,
@@ -130,6 +126,7 @@ class StonkTrainer(Trainer):
                         self.static["names_to_shuffle"],
                         self.static["max_name_idx"],
                         is_validation=False,
+                        is_training=True,
                     ),
                     batch_size=batch_size,
                     num_workers=num_workers,
@@ -166,6 +163,7 @@ class StonkTrainer(Trainer):
                 self.static["names_to_shuffle"],
                 self.static["max_name_idx"],
                 is_validation=False,
+                is_training=False,
             ),
         ):
             clear_output()
@@ -255,9 +253,15 @@ class StonkSet(IterableDataset[Dataset[torch.Tensor]]):
         names: List[str],
         max_name_idx: TestTrainToMax,
         is_validation: bool,
+        is_training: bool,
     ):
         self.name = name
         self.names = names
+        if is_training:
+            self.transforms = trainingTransforms
+            self.names = list(chain.from_iterable(repeat(names, 4)))
+        else:
+            self.transforms = toTensorOnly
         if is_validation:
             self.correct_entity = MemeCorrectTest
             self.incorrect_entity = MemeIncorrectTest
@@ -305,7 +309,7 @@ class StonkSet(IterableDataset[Dataset[torch.Tensor]]):
 
     def get_incorrect(self):
         return (
-            transformations(
+            self.transforms(
                 Img.open(
                     cast(
                         Tuple[str],
@@ -332,7 +336,7 @@ class StonkSet(IterableDataset[Dataset[torch.Tensor]]):
 
     def get_not_meme(self):
         return (
-            transformations(
+            self.transforms(
                 Img.open(
                     cast(
                         Tuple[str],
@@ -359,7 +363,7 @@ class StonkSet(IterableDataset[Dataset[torch.Tensor]]):
             cast(ClauseElement, entity.name_idx == rand),
         )
         return (
-            transformations(
+            self.transforms(
                 Img.open(
                     cast(
                         Tuple[str],
@@ -379,4 +383,4 @@ class StonkSet(IterableDataset[Dataset[torch.Tensor]]):
             cast(ClauseElement, entity.name_idx == rand),
         )
         p = cast(Tuple[str], training_db.query(entity.path).filter(clause).first())[0]
-        return (transformations(Img.open(p)), 1 if image_name == self.name else 0)
+        return (self.transforms(Img.open(p)), 1 if image_name == self.name else 0)

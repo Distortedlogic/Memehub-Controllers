@@ -5,7 +5,7 @@ import arrow
 
 LOAD_MEME_CLF_VERSION = "0.4.1"
 LOAD_STONK_VERSION = "0.0"
-MEME_CLF_VERSION = "0.4.1"
+MEME_CLF_VERSION = "0.4.3"
 STONK_VERSION = "0.0"
 NOT_A_MEME_VERSION = "0.0.1"
 
@@ -71,12 +71,10 @@ USER_TEMPLATES: List[Dict[str, str]] = [
     ),
 ]
 
-STILL_NEEDED = ["Sad Linus"]
-CAUSING_ISSUES = ["Talk To Spongebob"]
-
 DONT_USE_TEMPLATES = set(
     [
         "hardworking guy",
+        "why is the fbi here",
         "blank pokemon card",
         "valentines day card meme",
         "sonic says",

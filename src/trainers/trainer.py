@@ -24,6 +24,7 @@ class Trainer:
         self.num_epochs: int
         self.epoch: int
         self.begin: int
+        self.num_hard_resets: int = 0
         self.model: Any
 
     def get_num_correct(self, is_validation: bool) -> Tuple[int, int]:
@@ -72,6 +73,7 @@ class Trainer:
         eta = (self.cp["total_time"] * num_left) // self.cp["iteration"]
         pretty_print_dict(
             dict(
+                hard_resets=self.num_hard_resets,
                 timestamp=cast(str, arrow.utcnow().to("local").format("HH:mm:ss")),
                 model_runtime=secondsToText(self.model_runtime),
                 uptime=secondsToText(self.uptime),

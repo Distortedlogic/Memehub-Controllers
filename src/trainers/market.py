@@ -33,7 +33,7 @@ class MarketTrainer:
         for name in filter(lambda x: x not in names_done, self.names):
             self.smd["name_acc"][name] = 0
             trainer = StonkTrainer(name, fresh)
-            for cp in trainer.train(num_workers=32, batch_size=64, num_epochs=2):
+            for cp in trainer.train(num_workers=8, batch_size=64, num_epochs=2):
                 self.smd["name_acc"][name] = max(
                     cp["max_val_acc"], self.smd["name_acc"][name]
                 )

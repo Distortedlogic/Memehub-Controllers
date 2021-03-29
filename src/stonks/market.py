@@ -11,7 +11,7 @@ from src.constants import LOAD_MEME_CLF_VERSION
 from src.generated.models import Meme, RedditMeme
 from src.session import site_db
 from src.utils.display import display_df, pretty_print_dict
-from src.utils.image_funcs import load_img_from_url
+from src.utils.image_funcs import isDeletedException, load_tensor_from_url
 from src.utils.model_func import get_static_names
 from src.utils.secondToText import secondsToText
 from torch import Tensor
@@ -30,10 +30,11 @@ class MemeSet(IterableDataset[Tensor]):
             .order_by(cast(ClauseElement, self.entity.created_at.desc()))
         ):
             try:
-                image = load_img_from_url(meme.url)
+                image = load_tensor_from_url(meme.url, is_deleted=True)
                 yield (image, meme.id)
-            except Exception:
+            except isDeletedException:
                 site_db.delete(meme)
+                site_db.commit()
 
     def count(self):
         return (
@@ -107,18 +108,21 @@ class StonkMarket:
         clear_output()
         uptime = int(time() - self.start)
         count = self.dataset.count()
+        memes_done = (
+            site_db.query(self.entity)
+            .filter(cast(ClauseElement, self.entity.version != None))
+            .count()
+        )
+        memes_found = (
+            site_db.query(self.entity)
+            .filter(cast(ClauseElement, self.entity.stonk == True))
+            .count()
+        )
         pretty_print_dict(
             dict(
-                memes_done=(
-                    site_db.query(self.entity)
-                    .filter(cast(ClauseElement, self.entity.version != None))
-                    .count()
-                ),
-                memes_found=(
-                    site_db.query(self.entity)
-                    .filter(cast(ClauseElement, self.entity.stonk == True))
-                    .count()
-                ),
+                memes_done=memes_done,
+                memes_found=memes_found,
+                ratio=memes_found / memes_done,
                 num_left=count,
                 iteration=self.iteration,
                 round_time=secondsToText(int(time() - self.now) // 10),

@@ -1,6 +1,7 @@
 import json
 import random
 import time
+from itertools import chain, repeat
 from typing import Any, Callable, Dict, Iterator, List, Tuple, cast
 
 import torch
@@ -17,6 +18,7 @@ from src.session import training_db
 from src.trainers.trainer import Trainer
 from src.utils.display import display_template
 from src.utils.model_func import TestTrainToMax, load_cp
+from src.utils.transforms import toTensorOnly, trainingTransforms
 from torch import cuda, jit, nn
 from torch._C import ScriptModule
 from torch.optim import SGD
@@ -25,12 +27,6 @@ from torch.utils.data.dataset import Dataset, IterableDataset
 from torchvision import transforms
 from torchvision.models import vgg16
 
-transformations: Callable[..., torch.Tensor] = transforms.Compose(
-    [
-        transforms.ToTensor(),
-        # transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]),
-    ]
-)
 device = torch.device("cuda:0" if cuda.is_available() else "cpu")
 
 
@@ -52,7 +48,7 @@ class MemeClf(nn.Module):
             lr=0.001,
             momentum=0.9,
             dampening=0,
-            weight_decay=0,
+            weight_decay=0.000_001,
             nesterov=True,
         )
         self.dense_opt = SGD(
@@ -60,7 +56,7 @@ class MemeClf(nn.Module):
             lr=0.001,
             momentum=0.9,
             dampening=0,
-            weight_decay=0,
+            weight_decay=0.000_001,
             nesterov=True,
         )
         self.loss: Callable[..., torch.Tensor] = nn.CrossEntropyLoss()
@@ -85,9 +81,17 @@ class MemeClfSet(IterableDataset[Dataset[torch.Tensor]]):
         names_to_shuffle: List[str],
         name_num: Dict[str, int],
         is_validation: bool,
+        is_training: bool,
     ):
         self.name_num = name_num
-        self.names_to_shuffle = names_to_shuffle
+        if is_training:
+            self.transforms = trainingTransforms
+            self.names_to_shuffle = list(
+                chain.from_iterable(repeat(names_to_shuffle, 4))
+            )
+        else:
+            self.transforms = toTensorOnly
+            self.names_to_shuffle = names_to_shuffle
         if is_validation:
             self.meme_entity = MemeCorrectTest
             self.max_name_idx = max_name_idx["test"]
@@ -108,7 +112,7 @@ class MemeClfSet(IterableDataset[Dataset[torch.Tensor]]):
                 Tuple[str], training_db.query(entity.path).filter(clause).first()
             )[0]
             yield (
-                transformations(Img.open(path)),
+                self.transforms(Img.open(path)),
                 self.name_num[name],
             )
 
@@ -167,6 +171,7 @@ class MemeClfTrainer(Trainer):
                     self.static["names_to_shuffle"],
                     self.static["name_num"],
                     is_validation=False,
+                    is_training=True,
                 ),
                 64,
                 self.num_workers,
@@ -182,6 +187,7 @@ class MemeClfTrainer(Trainer):
             self.model: MemeClf = self.get_model(False).to(device)
             self.cp = load_cp(MEME_CLF_REPO.format("cp") + "meme_clf", False)
             self.wrong_names = self.get_wrong_names()
+            self.num_hard_resets += 1
             return True
         else:
             return False
@@ -199,6 +205,7 @@ class MemeClfTrainer(Trainer):
                         self.wrong_names,
                         self.static["name_num"],
                         is_validation=False,
+                        is_training=True,
                     ),
                     batch_size=64,
                     num_workers=self.num_workers,
@@ -224,9 +231,10 @@ class MemeClfTrainer(Trainer):
                         self.static["names_to_shuffle"],
                         self.static["name_num"],
                         is_validation=is_validation,
+                        is_training=False,
                     ),
                     batch_size=64,
-                    num_workers=0,
+                    num_workers=1,
                     collate_fn=cast(Any, None),
                 ),
             ):
@@ -247,6 +255,7 @@ class MemeClfTrainer(Trainer):
                         self.static["names_to_shuffle"],
                         self.static["name_num"],
                         is_validation=False,
+                        is_training=False,
                     ),
                     batch_size=64,
                     num_workers=64,
@@ -274,6 +283,7 @@ class MemeClfTrainer(Trainer):
             self.static["names_to_shuffle"],
             self.static["name_num"],
             is_validation=False,
+            is_training=False,
         ):
             clear_output()
             name = self.humanize_pred(num)

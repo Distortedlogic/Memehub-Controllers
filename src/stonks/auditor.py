@@ -45,7 +45,9 @@ class Auditor:
         for meme in site_db.query(RedditMeme).filter(clause):
             clear_output()
             print_stats(meme.meme_clf)
-            display_meme(meme)
+            print("url", meme.url)
+            if not display_meme(meme):
+                continue
             display_template(meme.meme_clf)
             if self.update_meme(meme):
                 break

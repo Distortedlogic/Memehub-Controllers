@@ -10,8 +10,7 @@ from pandas.core.frame import DataFrame
 from PIL import Image
 from src.generated.models import RedditMeme
 from src.session import site_db
-from src.utils.image_funcs import load_img_from_url
-from torchvision import transforms
+from src.utils.image_funcs import isDeletedException, load_img_from_url
 
 s3 = boto3.resource(
     "s3", aws_access_key_id=config("AWS_ID"), aws_secret_access_key=config("AWS_KEY")
@@ -40,10 +39,7 @@ def display_template(name: str):
 
 
 def display_meme(meme: RedditMeme):
-    try:
-        image = transforms.ToPILImage()(load_img_from_url(meme.url))
-    except Exception:
-        site_db.delete(meme)
-        return
+    image = load_img_from_url(meme.url, is_deleted=False)
     display_df(pd.DataFrame([("meme_clf", meme.meme_clf), ("stonk", meme.stonk)]))
     _ = display(image)
+    return True
