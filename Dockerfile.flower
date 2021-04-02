@@ -5,5 +5,7 @@ ENV PYTHONUNBUFFERED=1 \
 	TERM=xterm \
 	IS_DOCKER=1
 USER root
+RUN --mount=type=cache,target=/root/.cache/pip pip install torch===1.7.1+cpu \
+	torchvision===0.8.2+cpu -f https://download.pytorch.org/whl/torch_stable.html
 COPY requirements.flower.txt requirements.txt
 RUN --mount=type=cache,target=/root/.cache/pip pip install -r requirements.txt

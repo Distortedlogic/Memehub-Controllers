@@ -1,8 +1,10 @@
 from time import time
 from typing import Any, Iterator, List, Tuple, cast
 
+import arrow
 import numpy as np
 import pandas as pd
+from arrow.arrow import Arrow
 from IPython.core.display import clear_output
 from PIL import UnidentifiedImageError
 from redisai import Client
@@ -22,7 +24,7 @@ from torch.utils.data.dataset import IterableDataset
 
 
 class MemeSet(IterableDataset[Tensor]):
-    def __init__(self, entity: Any, eval_mode: bool):
+    def __init__(self, entity: Any, eval_mode: bool, is_celery: bool):
         self.entity = entity
         self.num_deleted = 0
         self.num_bad_images = 0
@@ -35,10 +37,27 @@ class MemeSet(IterableDataset[Tensor]):
                 cast(ClauseElement, self.entity.is_a_template_official != None),
             )
         else:
-            self.clause = or_(
-                cast(ClauseElement, self.entity.version == None),
-                cast(ClauseElement, self.entity.version != LOAD_MEME_CLF_VERSION),
-            )
+            if is_celery:
+                self.clause = and_(
+                    cast(
+                        ClauseElement,
+                        self.entity.createdAt
+                        >= cast(Arrow, arrow.utcnow())
+                        .replace(minute=0, second=0, millisecond=0)
+                        .shift(days=-2),
+                    ),
+                    or_(
+                        cast(ClauseElement, self.entity.version == None),
+                        cast(
+                            ClauseElement, self.entity.version != LOAD_MEME_CLF_VERSION
+                        ),
+                    ),
+                )
+            else:
+                self.clause = or_(
+                    cast(ClauseElement, self.entity.version == None),
+                    cast(ClauseElement, self.entity.version != LOAD_MEME_CLF_VERSION),
+                )
 
     def __iter__(self):
         for meme in (
@@ -65,9 +84,11 @@ class MemeSet(IterableDataset[Tensor]):
 
 
 class StonkMarket:
-    def __init__(self):
+    def __init__(self, is_celery: bool = False):
         self.rai = Client(host="redis", port=6379)
         self.batch_size = 128
+        self.is_celery = is_celery
+        self.celery_tag = "_celery" if is_celery else ""
 
     def reddit_engine(self):
         self.entity = RedditMeme
@@ -88,7 +109,11 @@ class StonkMarket:
         idx, (id, name) = idx_id_name
         if (meme := site_db.query(self.entity).get(id)) :
             is_stonk = bool(
-                round(cast(List[int], self.rai.tensorget(f"{name}_out"))[idx])
+                round(
+                    cast(
+                        List[int], self.rai.tensorget(f"{name}_out" + self.celery_tag)
+                    )[idx]
+                )
             )
             meme.meme_clf = name  # type: ignore
             meme.stonk = is_stonk  # type: ignore
@@ -98,7 +123,7 @@ class StonkMarket:
     def engine(self):
         if input("Fresh?"):
             self.clear()
-        self.dataset = MemeSet(self.entity, self.eval_mode)
+        self.dataset = MemeSet(self.entity, self.eval_mode, self.is_celery)
         num_name = get_static_names(LOAD_MEME_CLF_VERSION)["num_name"]
         self.start = time()
         self.now = time()
@@ -113,15 +138,27 @@ class StonkMarket:
                 ),
             )
         ):
-            _ = self.rai.tensorset("images", np.array(images).astype(np.float32))
-            _ = self.rai.modelrun("features", "images", "features_out")
-            _ = self.rai.modelrun("dense", "features_out", "dense_out")
+            _ = self.rai.tensorset(
+                "images" + self.celery_tag, np.array(images).astype(np.float32)
+            )
+            _ = self.rai.modelrun(
+                "features", "images" + self.celery_tag, "features_out" + self.celery_tag
+            )
+            _ = self.rai.modelrun(
+                "dense", "features_out" + self.celery_tag, "dense_out" + self.celery_tag
+            )
             names: List[str] = [
                 num_name[str(cast(int, np.argmax(arr)))]
-                for arr in cast(List[Tensor], self.rai.tensorget("dense_out"))
+                for arr in cast(
+                    List[Tensor], self.rai.tensorget("dense_out" + self.celery_tag)
+                )
             ]
             for name in set(names):
-                _ = self.rai.modelrun(name, "features_out", f"{name}_out")
+                _ = self.rai.modelrun(
+                    name,
+                    "features_out" + self.celery_tag,
+                    f"{name}_out" + self.celery_tag,
+                )
             for item in cast(
                 Iterator[Tuple[int, Tuple[int, str]]],
                 enumerate(zip(ids.numpy().astype(int).tolist(), names)),
@@ -230,4 +267,3 @@ class StonkMarket:
             meme.stonk_correct = None  # type: ignore
             meme.is_a_template = None  # type: ignore
         site_db.commit()
-

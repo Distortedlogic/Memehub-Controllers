@@ -5,6 +5,7 @@ import arrow
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
+from arrow.arrow import Arrow
 from pandas.core.series import Series
 from src.constants import MEME_CLF_VERSION
 from src.utils.data_folders import name_to_img_count
@@ -74,7 +75,9 @@ class Trainer:
         pretty_print_dict(
             dict(
                 hard_resets=self.num_hard_resets,
-                timestamp=cast(str, arrow.utcnow().to("local").format("HH:mm:ss")),
+                timestamp=cast(
+                    str, cast(Arrow, arrow.utcnow()).to("local").format("HH:mm:ss")
+                ),
                 model_runtime=secondsToText(self.model_runtime),
                 uptime=secondsToText(self.uptime),
                 total_time=secondsToText(self.cp["total_time"]),

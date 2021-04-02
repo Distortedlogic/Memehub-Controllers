@@ -5,6 +5,7 @@ from typing import Any, Dict, Iterator, List, Union, cast
 
 import arrow
 import requests
+from arrow.arrow import Arrow
 from billiard import Pool, cpu_count  # type:ignore
 from retry import retry
 from src.constants import FULL_SUB_LIST, PUSHSHIFT_URI, get_beginning
@@ -91,9 +92,12 @@ class RedditScrapper:
     def scrape_reddit_memes(self, verbose: bool = False):
         print("STARTING CELERY")
         for self.sub in FULL_SUB_LIST:
-            self.end_at: int = arrow.utcnow().shift(days=-1).replace(
-                second=0, minute=0
-            ).timestamp
+            self.end_at = (
+                cast(Arrow, arrow.utcnow())
+                .shift(days=-1)
+                .replace(second=0, minute=0, millisecond=0)
+                .timestamp
+            )
             self.start_at = redditmeme_max_ts(self.sub)
             if not (self.start_at):
                 self.start_at = get_beginning()

@@ -102,6 +102,7 @@ alembic == 1.4.3
 # jupyterlab
 tornado==6.1
 # not found by pigar
+IPython
 retry
 sqlacodegen
 flask-sqlacodegen

@@ -2,6 +2,7 @@ from pathlib import Path
 from typing import Dict, List, cast
 
 import arrow
+from arrow.arrow import Arrow
 
 LOAD_MEME_CLF_VERSION = "0.4.4"
 LOAD_STONK_VERSION = "0.0"
@@ -54,9 +55,11 @@ BATCH_SIZE = 32
 
 
 def get_beginning() -> int:
-    return cast(
-        int,
-        arrow.utcnow().shift(days=-31).replace(hour=0, minute=0, second=0).timestamp,
+    return (
+        cast(Arrow, arrow.utcnow())
+        .shift(days=-31)
+        .replace(hour=0, minute=0, second=0, millisecond=0)
+        .timestamp
     )
 
 

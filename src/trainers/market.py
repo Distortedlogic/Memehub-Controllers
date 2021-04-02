@@ -4,6 +4,7 @@ from typing import cast
 import arrow
 import matplotlib.pyplot as plt
 import pandas as pd
+from arrow.arrow import Arrow
 from IPython.core.display import clear_output
 from src.constants import MEME_CLF_VERSION
 from src.trainers.stonk import StonkTrainer
@@ -83,7 +84,9 @@ class MarketTrainer:
                 num_names_done=f"{self.num_done}/{self.total}",
                 round_time=secondsToText(round_time),
                 market_uptime=secondsToText(uptime),
-                timestamp=cast(str, arrow.utcnow().to("local").format("HH:mm:ss")),
+                timestamp=cast(
+                    str, cast(Arrow, arrow.utcnow()).to("local").format("HH:mm:ss")
+                ),
                 eta=secondsToText((self.smd["total_time"] * num_left) // self.num_done),
             )
         )
