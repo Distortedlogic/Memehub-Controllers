@@ -18,7 +18,7 @@ def engine(meme: RedditMeme) -> None:
     Path(folder).mkdir(parents=True, exist_ok=True)
     path = folder + "/" + filename
     _ = download_img_from_url(meme.url, path)
-    if not meme.is_template:
+    if not meme.is_a_template:
         _ = download_img_from_url(meme.url, NOT_TEMPLATE_REPO + filename)
 
 

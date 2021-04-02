@@ -40,6 +40,8 @@ def display_template(name: str):
 
 def display_meme(meme: RedditMeme):
     image = load_img_from_url(meme.url, is_deleted=False)
-    display_df(pd.DataFrame([("meme_clf", meme.meme_clf), ("stonk", meme.stonk)]))
+    display_df(
+        pd.DataFrame.from_records([dict(meme_clf=meme.meme_clf, stonk=meme.stonk)])
+    )
     _ = display(image)
     return True

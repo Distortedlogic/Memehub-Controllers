@@ -91,7 +91,9 @@ def download_img_from_url_blank(name_blank_path: Tuple[Tuple[str, str], str]) ->
 
 
 def download_blanks() -> None:
-    q = training_db.query(Template.name, Template.blank_url)
+    q = training_db.query(Template.name, Template.blank_url).filter(
+        cast(ClauseElement, Template.name.in_(MEMES_TO_USE))
+    )
     path = BLANKS_REPO
     shutil.rmtree(path)
     Path(path).mkdir(parents=True, exist_ok=True)  # type: ignore

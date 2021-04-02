@@ -4,13 +4,15 @@ from typing import Any, Iterator, List, Tuple, cast
 import numpy as np
 import pandas as pd
 from IPython.core.display import clear_output
+from PIL import UnidentifiedImageError
 from redisai import Client
 from sqlalchemy import and_, func
-from sqlalchemy.sql.elements import ClauseElement
-from src.constants import LOAD_MEME_CLF_VERSION
+from sqlalchemy.sql.elements import ClauseElement, or_
+from src.constants import DONT_USE_TEMPLATES, LOAD_MEME_CLF_VERSION
 from src.generated.models import Meme, RedditMeme
 from src.session import site_db
-from src.utils.display import display_df, pretty_print_dict
+from src.stonks.utils.evaluate import evaluated, unevaluated
+from src.utils.display import display_df, display_template, pretty_print_dict
 from src.utils.image_funcs import isDeletedException, load_tensor_from_url
 from src.utils.model_func import get_static_names
 from src.utils.secondToText import secondsToText
@@ -20,21 +22,39 @@ from torch.utils.data.dataset import IterableDataset
 
 
 class MemeSet(IterableDataset[Tensor]):
-    def __init__(self, entity: Any):
+    def __init__(self, entity: Any, eval_mode: bool):
         self.entity = entity
+        self.num_deleted = 0
+        self.num_bad_images = 0
+        if eval_mode:
+            self.clause = and_(
+                or_(
+                    cast(ClauseElement, self.entity.version == None),
+                    cast(ClauseElement, self.entity.version != LOAD_MEME_CLF_VERSION),
+                ),
+                cast(ClauseElement, self.entity.is_a_template_official != None),
+            )
+        else:
+            self.clause = or_(
+                cast(ClauseElement, self.entity.version == None),
+                cast(ClauseElement, self.entity.version != LOAD_MEME_CLF_VERSION),
+            )
 
     def __iter__(self):
         for meme in (
             site_db.query(self.entity)
-            .filter(cast(ClauseElement, self.entity.version == None))
+            .filter(self.clause)
             .order_by(cast(ClauseElement, self.entity.created_at.desc()))
         ):
             try:
                 image = load_tensor_from_url(meme.url, is_deleted=True)
                 yield (image, meme.id)
+            except UnidentifiedImageError:
+                self.num_bad_images += 1
             except isDeletedException:
-                site_db.delete(meme)
-                site_db.commit()
+                self.num_deleted += 1
+                # site_db.delete(meme)
+                # site_db.commit()
 
     def count(self):
         return (
@@ -51,14 +71,18 @@ class StonkMarket:
 
     def reddit_engine(self):
         self.entity = RedditMeme
+        self.eval_mode = False
         self.engine()
 
     def site_engine(self):
         self.entity = Meme
+        self.eval_mode = False
         self.engine()
 
-    def run_model_name(self, name: str):
-        _ = self.rai.modelrun(name, "features_out", f"{name}_out")
+    def evaluate(self):
+        self.entity = RedditMeme
+        self.eval_mode = True
+        self.engine()
 
     def update_meme(self, idx_id_name: Tuple[int, Tuple[int, str]]):
         idx, (id, name) = idx_id_name
@@ -72,7 +96,9 @@ class StonkMarket:
         site_db.commit()
 
     def engine(self):
-        self.dataset = MemeSet(self.entity)
+        if input("Fresh?"):
+            self.clear()
+        self.dataset = MemeSet(self.entity, self.eval_mode)
         num_name = get_static_names(LOAD_MEME_CLF_VERSION)["num_name"]
         self.start = time()
         self.now = time()
@@ -95,7 +121,7 @@ class StonkMarket:
                 for arr in cast(List[Tensor], self.rai.tensorget("dense_out"))
             ]
             for name in set(names):
-                _ = self.run_model_name(name)
+                _ = self.rai.modelrun(name, "features_out", f"{name}_out")
             for item in cast(
                 Iterator[Tuple[int, Tuple[int, str]]],
                 enumerate(zip(ids.numpy().astype(int).tolist(), names)),
@@ -103,32 +129,32 @@ class StonkMarket:
                 self.update_meme(item)
             if self.iteration % 10 == 0:
                 self.print_stats()
+        self.print_stats()
 
     def print_stats(self):
         clear_output()
+        self.count = self.dataset.count()
+        if self.eval_mode:
+            evaluated()
+        else:
+            unevaluated(
+                dict(
+                    bad_images=self.dataset.num_bad_images,
+                    is_deleted=self.dataset.num_deleted,
+                    num_left=self.count,
+                    iteration=self.iteration,
+                )
+            )
+            self.time_stats()
+
+    def time_stats(self):
         uptime = int(time() - self.start)
-        count = self.dataset.count()
-        memes_done = (
-            site_db.query(self.entity)
-            .filter(cast(ClauseElement, self.entity.version != None))
-            .count()
-        )
-        memes_found = (
-            site_db.query(self.entity)
-            .filter(cast(ClauseElement, self.entity.stonk == True))
-            .count()
-        )
         pretty_print_dict(
             dict(
-                memes_done=memes_done,
-                memes_found=memes_found,
-                ratio=memes_found / memes_done,
-                num_left=count,
-                iteration=self.iteration,
                 round_time=secondsToText(int(time() - self.now) // 10),
                 uptime=secondsToText(uptime),
                 eta=secondsToText(
-                    uptime * count // ((self.iteration + 1) * self.batch_size)
+                    uptime * self.count // ((self.iteration + 1) * self.batch_size)
                 ),
             )
         )
@@ -161,6 +187,36 @@ class StonkMarket:
             df["total_upvotes"].divide(df["num_posts"]).apply(np.round).astype(int)
         )
         display_df(df)
+
+    def limbo(self):
+        inTheMarket = [
+            name
+            for name, in cast(
+                List[str],
+                site_db.query(RedditMeme.meme_clf.label("name"),)
+                .filter(
+                    and_(
+                        cast(ClauseElement, RedditMeme.stonk == True),
+                        cast(
+                            ClauseElement, RedditMeme.version == LOAD_MEME_CLF_VERSION
+                        ),
+                    )
+                )
+                .distinct(RedditMeme.meme_clf),
+            )
+        ]
+        notInTheMarket = [
+            name
+            for name in get_static_names(LOAD_MEME_CLF_VERSION)["names"]
+            if name not in inTheMarket
+        ]
+        for name in notInTheMarket:
+            if name not in inTheMarket + list(DONT_USE_TEMPLATES):
+                clear_output()
+                print("notInTheMarket", len(notInTheMarket))
+                print(name)
+                _ = display_template(name)
+                _ = input("next")
 
     @staticmethod
     def clear():

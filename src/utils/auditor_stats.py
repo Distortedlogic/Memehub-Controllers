@@ -32,9 +32,21 @@ def print_stats(name: str = ""):
             )
             .count()
         )
+        num_posts = (
+            site_db.query(RedditMeme)
+            .filter(
+                and_(
+                    cast(ClauseElement, RedditMeme.version == LOAD_MEME_CLF_VERSION),
+                    cast(ClauseElement, RedditMeme.meme_clf == name),
+                    cast(ClauseElement, RedditMeme.stonk == True),
+                )
+            )
+            .count()
+        )
     else:
         correct_stonk = 0
         wrong_stonk = 0
+        num_posts = 0
     correct_stonks = (
         site_db.query(RedditMeme)
         .filter(
@@ -89,6 +101,7 @@ def print_stats(name: str = ""):
         pd.DataFrame.from_records(
             [
                 dict(
+                    num_posts=num_posts,
                     correct_stonk=correct_stonk,
                     wrong_stonk=wrong_stonk,
                     memes_classified=memes_classified,

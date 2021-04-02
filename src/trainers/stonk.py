@@ -5,6 +5,7 @@ from itertools import chain, repeat
 from random import shuffle
 from typing import Any, Callable, Iterator, List, Tuple, Union, cast
 
+import matplotlib.pyplot as plt
 import torch
 import torch.nn as nn
 from IPython.core.display import clear_output
@@ -26,7 +27,7 @@ from src.schema import (
 from src.session import training_db
 from src.trainers.trainer import Trainer
 from src.utils.display import display_template
-from src.utils.model_func import CP, TestTrainToMax, load_cp
+from src.utils.model_func import CP, TestTrainToMax, avg_n, load_cp
 from src.utils.transforms import toTensorOnly, trainingTransforms
 from torch import Tensor, cuda, jit
 from torch._C import ScriptModule
@@ -50,7 +51,7 @@ class Stonk(nn.Module):
             lr=0.000_000_1,
             momentum=0.9,
             dampening=0,
-            weight_decay=0.01,
+            weight_decay=0.000_001,
             nesterov=True,
         )
         self.loss_func: Callable[..., torch.Tensor] = BCELoss()
@@ -97,10 +98,11 @@ class StonkTrainer(Trainer):
                         self.static["names_to_shuffle"],
                         self.static["max_name_idx"],
                         is_validation=is_validation,
-                        is_training=False,
+                        size=1,
+                        transform=not is_validation,
                     ),
                     batch_size=64,
-                    num_workers=1,
+                    num_workers=4,
                     collate_fn=cast(Any, None),
                 ),
             ):
@@ -126,7 +128,8 @@ class StonkTrainer(Trainer):
                         self.static["names_to_shuffle"],
                         self.static["max_name_idx"],
                         is_validation=False,
-                        is_training=True,
+                        size=4,
+                        transform=True,
                     ),
                     batch_size=batch_size,
                     num_workers=num_workers,
@@ -163,7 +166,8 @@ class StonkTrainer(Trainer):
                 self.static["names_to_shuffle"],
                 self.static["max_name_idx"],
                 is_validation=False,
-                is_training=False,
+                size=1,
+                transform=False,
             ),
         ):
             clear_output()
@@ -210,11 +214,15 @@ class StonkTrainer(Trainer):
             model = Stonk(size)
         else:
             try:
-                model: Stonk = torch.load(STONK_REPO.format("reg") + ".pt")
-            except Exception:
+                model: Stonk = torch.load(STONK_REPO.format("reg") + self.name + ".pt")
+            except Exception as e:
+                print(e)
                 try:
-                    model: Stonk = torch.load(STONK_REPO.format("reg") + "_backup.pt")
-                except Exception:
+                    model: Stonk = torch.load(
+                        STONK_REPO.format("reg") + self.name + "_backup.pt"
+                    )
+                except Exception as e:
+                    print(e)
                     model = Stonk(size)
         return model
 
@@ -245,6 +253,14 @@ class StonkTrainer(Trainer):
         self.display_cp()
         self.print_graphs()
 
+    def print_graphs(self) -> None:
+        _ = plt.figure(figsize=(20, 6))
+        # plt.ticklabel_format(style="plain", useOffset=False)
+        _ = plt.plot(range(len(self.cp["loss_history"])), self.cp["loss_history"])
+        plt.grid()
+        plt.title("Loss Full")
+        plt.show()
+
 
 class StonkSet(IterableDataset[Dataset[torch.Tensor]]):
     def __init__(
@@ -253,13 +269,18 @@ class StonkSet(IterableDataset[Dataset[torch.Tensor]]):
         names: List[str],
         max_name_idx: TestTrainToMax,
         is_validation: bool,
-        is_training: bool,
+        size: int,
+        transform: bool,
+        cpb: float = 2 / 5,
+        nmpb: float = 1 / 10,
+        ntpb: float = 1 / 5,
+        ipb: float = 1 / 10,
     ):
         self.name = name
         self.names = names
-        if is_training:
+        self.names = list(chain.from_iterable(repeat(names, size)))
+        if transform:
             self.transforms = trainingTransforms
-            self.names = list(chain.from_iterable(repeat(names, 4)))
         else:
             self.transforms = toTensorOnly
         if is_validation:
@@ -278,17 +299,15 @@ class StonkSet(IterableDataset[Dataset[torch.Tensor]]):
             self.my_max_correct = max_name_idx["train"]["correct"][self.name]
             self.my_max_incorrect = max_name_idx["train"]["incorrect"][self.name]
             self.max_name_idx = max_name_idx["train"]
-        self.cpb = 1 / 5
-        self.nmpb = 3 / 5
-        if self.max_name_idx["not_a_template"]:
-            self.ntpb = min(
-                1 / 5,
-                max(1 / 100, self.max_name_idx["not_a_template"] / len(self.names)),
-            )
+        self.cpb = cpb
+        self.nmpb = nmpb
+        max_not_a_template = self.max_name_idx["not_a_template"]
+        if max_not_a_template:
+            self.ntpb = min(ntpb, max(1 / 100, max_not_a_template / len(self.names)),)
         else:
             self.ntpb = 0
         if self.my_max_incorrect:
-            self.ipb = min(1 / 5, max(1 / 100, self.my_max_incorrect / len(self.names)))
+            self.ipb = min(ipb, max(1 / 100, self.my_max_incorrect / len(self.names)))
         else:
             self.ipb = 0
 
@@ -303,13 +322,13 @@ class StonkSet(IterableDataset[Dataset[torch.Tensor]]):
             elif 1 - self.ipb < rand:
                 yield self.get_incorrect()
             elif 1 - self.ipb - self.ntpb < rand < 1 - self.ipb:
-                yield self.get_incorrect()
+                yield self.get_not_template()
             else:
                 yield self.get_assortment()
 
     def get_incorrect(self):
         return (
-            self.transforms(
+            toTensorOnly(
                 Img.open(
                     cast(
                         Tuple[str],
@@ -334,9 +353,32 @@ class StonkSet(IterableDataset[Dataset[torch.Tensor]]):
             0,
         )
 
+    def get_not_template(self):
+        return (
+            toTensorOnly(
+                Img.open(
+                    cast(
+                        Tuple[str],
+                        training_db.query(self.not_a_template_entity.path)
+                        .filter(
+                            cast(
+                                ClauseElement,
+                                self.not_a_template_entity.name_idx
+                                == random.randint(
+                                    0, self.max_name_idx["not_a_template"]
+                                ),
+                            ),
+                        )
+                        .first(),
+                    )[0]
+                )
+            ),
+            0,
+        )
+
     def get_not_meme(self):
         return (
-            self.transforms(
+            toTensorOnly(
                 Img.open(
                     cast(
                         Tuple[str],
@@ -362,8 +404,9 @@ class StonkSet(IterableDataset[Dataset[torch.Tensor]]):
             cast(ClauseElement, entity.name == self.name),
             cast(ClauseElement, entity.name_idx == rand),
         )
+        transforms = toTensorOnly if random.random() < 0.15 else self.transforms
         return (
-            self.transforms(
+            transforms(
                 Img.open(
                     cast(
                         Tuple[str],
@@ -383,4 +426,5 @@ class StonkSet(IterableDataset[Dataset[torch.Tensor]]):
             cast(ClauseElement, entity.name_idx == rand),
         )
         p = cast(Tuple[str], training_db.query(entity.path).filter(clause).first())[0]
-        return (self.transforms(Img.open(p)), 1 if image_name == self.name else 0)
+        transforms = toTensorOnly if random.random() < 0.5 else self.transforms
+        return (transforms(Img.open(p)), 1 if image_name == self.name else 0)

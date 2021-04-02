@@ -3,7 +3,7 @@ from typing import Callable, Tuple
 
 import numpy as np
 import requests
-from PIL import Image
+from PIL import Image, UnidentifiedImageError
 from PIL.Image import Image as Img
 from src.constants import IMG_HEIGHT, IMG_WIDTH
 from torch import Tensor
@@ -15,7 +15,7 @@ transformations: Callable[..., Tensor] = transforms.Compose(
         # transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]),
     ]
 )
-deleted = Image.open("src/data/delete.png")
+deleted = np.array(Image.open("src/data/delete.png"))
 
 
 class isDeletedException(Exception):
@@ -24,7 +24,10 @@ class isDeletedException(Exception):
 
 def load_tensor_from_url(url: str, is_deleted: bool) -> Tensor:
     raw = requests.get(url, stream=True).raw
-    image = Image.open(raw).resize((224, 224)).convert("RGB")
+    try:
+        image = Image.open(raw).resize((224, 224)).convert("RGB")
+    except UnidentifiedImageError as e:
+        raise e
     if is_deleted and isDeleted(image):
         raise isDeletedException
     return transformations(image)
@@ -32,7 +35,12 @@ def load_tensor_from_url(url: str, is_deleted: bool) -> Tensor:
 
 def load_img_from_url(url: str, is_deleted: bool) -> Img:
     raw = requests.get(url, stream=True).raw
-    image = Image.open(raw).resize((224, 224)).convert("RGB")
+    try:
+        image = Image.open(raw).resize((224, 224)).convert("RGB")
+    except UnidentifiedImageError as e:
+        print("url", url)
+        print(Image.open(raw))
+        raise e
     if is_deleted and isDeleted(image):
         raise isDeletedException
     return image
@@ -44,8 +52,14 @@ def isDeleted(image: Img) -> bool:
     # _ = download_img_from_url(
     #     "https://i.redd.it/v9kwwkec3kn61.png", "src/data/delete.png"
     # )
-    isDeleted = np.abs(np.array(image) - np.array(deleted)).sum()
-    return not bool(isDeleted)
+    try:
+        diff = np.array(image) - deleted
+        isDeleted = np.abs(diff).sum()
+        return not bool(isDeleted)
+    except Exception as e:
+        print("image", image)
+        print("deleted", deleted)
+        raise e
 
 
 def download_img_from_url(

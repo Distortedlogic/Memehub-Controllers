@@ -18,6 +18,7 @@ from sqlalchemy.schema import FetchedValue
 from src.reddit.functions.misc import dump_datetime
 
 Base: Any = declarative_base()
+metadata = Base.metadata
 
 
 class CommentVote(Base):
@@ -92,6 +93,22 @@ class Follow(Base):
     )
 
 
+class Market(Base):
+    __tablename__ = "market"
+
+    name = Column(String, primary_key=True, nullable=False)
+    createdAt = Column(DateTime, primary_key=True, nullable=False)
+    numPosts = Column(Integer, nullable=False)
+    numUpvotes = Column(Integer, nullable=False)
+    templateName = Column(ForeignKey("templates.name"))
+
+    template = relationship(
+        "Template",
+        primaryjoin="Market.templateName == Template.name",
+        backref="markets",
+    )
+
+
 class MemeVote(Base):
     __tablename__ = "meme_votes"
 
@@ -118,19 +135,19 @@ class Meme(Base):
     id = Column(UUID, primary_key=True)
     isHive = Column(Boolean, nullable=False, server_default=FetchedValue())
     title = Column(String)
+    ocrText = Column(String)
     url = Column(String, nullable=False)
     userId = Column(ForeignKey("users.id", ondelete="CASCADE"), nullable=False)
+    meme_clf = Column(String)
+    meme_clf_correct = Column(Boolean)
+    version = Column(String)
     season = Column(Integer)
-    community = Column(String, nullable=False)
     numComments = Column(Integer, nullable=False, server_default=FetchedValue())
     ups = Column(Integer, nullable=False, server_default=FetchedValue())
     downs = Column(Integer, nullable=False, server_default=FetchedValue())
     ratio = Column(Float(53), nullable=False, server_default=FetchedValue())
     createdAt = Column(DateTime, nullable=False, server_default=FetchedValue())
     updatedAt = Column(DateTime, nullable=False, server_default=FetchedValue())
-    ocrText = Column(String)
-    stonk = Column(String)
-    version = Column(String)
 
     user = relationship("User", primaryjoin="Meme.userId == User.id", backref="memes")
 
@@ -150,7 +167,7 @@ class Rank(Base):
     userId = Column(String, primary_key=True, nullable=False)
     timeFrame = Column(String, primary_key=True, nullable=False)
     rank = Column(Integer, nullable=False)
-    totalPoints = Column(Integer, nullable=False)
+    mhp = Column(Integer, nullable=False)
 
 
 class RedditMeme(Base):
@@ -161,8 +178,12 @@ class RedditMeme(Base):
     reddit_id = Column(String(20), nullable=False)
     subreddit = Column(String(50), nullable=False)
     title = Column(String(500), nullable=False)
-    url = Column(String(1000), nullable=False)
+    url = Column(String(1000), nullable=False, unique=True)
     meme_text = Column(String(1000000))
+    is_a_template = Column(Boolean)
+    meme_clf = Column(String(100))
+    meme_clf_correct = Column(Boolean)
+    version = Column(String(20))
     timestamp = Column(Integer, nullable=False)
     created_at = Column(DateTime, nullable=False)
     upvote_ratio = Column(Float(53), nullable=False)
@@ -171,12 +192,10 @@ class RedditMeme(Base):
     num_comments = Column(Integer, nullable=False)
     redditor_id = Column(Integer)
     redditorId = Column(ForeignKey("redditors.id"))
-    version = Column(String(20))
-    meme_clf = Column(String(100))
-    meme_clf_correct = Column(Boolean)
     stonk = Column(Boolean)
     stonk_correct = Column(Boolean)
-    is_a_template = Column(Boolean)
+    stonk_official = Column(String)
+    is_a_template_official = Column(Boolean)
 
     redditor = relationship(
         "Redditor",
@@ -211,42 +230,33 @@ class RedditScore(Base):
         backref="reddit_scores",
     )
 
-    @property
-    def serialize(self) -> Dict[str, Any]:
-        return {
-            "username": self.username,
-            "subreddit": self.subreddit,
-            "timestamp": self.timestamp,
-            "datetime": dump_datetime(self.datetime),
-            "final_score": self.final_score,
-            "raw_score": self.raw_score,
-            "num_in_bottom": self.num_in_bottom,
-            "num_in_top": self.num_in_top,
-            "shitposter_index": self.shitposter_index,
-            "highest_upvotes": self.highest_upvotes,
-            "hu_score": self.hu_score,
-            "lowest_ratio": self.lowest_ratio,
-        }
-
-    @property
-    def stats(self):
-        return {
-            "username": self.username,
-            "final_score": self.final_score,
-            "num_in_bottom": self.num_in_bottom,
-            "num_in_top": self.num_in_top,
-            "shitposter_index": self.shitposter_index,
-            "highest_upvotes": self.highest_upvotes,
-            "hu_score": self.hu_score,
-            "lowest_ratio": self.lowest_ratio,
-        }
-
 
 class Redditor(Base):
     __tablename__ = "redditors"
 
     id = Column(Integer, primary_key=True, server_default=FetchedValue())
     username = Column(String(20), nullable=False, unique=True)
+
+
+class Template(Base):
+    __tablename__ = "templates"
+
+    name = Column(String, primary_key=True)
+    url = Column(String, nullable=False, unique=True)
+
+
+class Trade(Base):
+    __tablename__ = "trades"
+
+    id = Column(UUID, primary_key=True)
+    name = Column(String, nullable=False)
+    entry = Column(Float(53), nullable=False)
+    exit = Column(Float(53), nullable=False)
+    createdAt = Column(DateTime, nullable=False, server_default=FetchedValue())
+    updatedAt = Column(DateTime, nullable=False, server_default=FetchedValue())
+    userId = Column(ForeignKey("users.id", ondelete="CASCADE"))
+
+    user = relationship("User", primaryjoin="Trade.userId == User.id", backref="trades")
 
 
 class User(Base):
@@ -261,8 +271,6 @@ class User(Base):
     createdAt = Column(DateTime, nullable=False, server_default=FetchedValue())
     updatedAt = Column(DateTime, nullable=False, server_default=FetchedValue())
     password = Column(String)
-    numFollowing = Column(Integer, nullable=False, server_default=FetchedValue())
-    numFollowers = Column(Integer, nullable=False, server_default=FetchedValue())
     numMemeVotesGiven = Column(Integer, nullable=False, server_default=FetchedValue())
     numMemeUpvotesRecieved = Column(
         Integer, nullable=False, server_default=FetchedValue()
@@ -282,4 +290,5 @@ class User(Base):
     numCommentDownvotesRecieved = Column(
         Integer, nullable=False, server_default=FetchedValue()
     )
-    totalPoints = Column(Integer, nullable=False, server_default=FetchedValue())
+    mhp = Column(Integer, nullable=False, server_default=FetchedValue())
+    gbp = Column(Integer, nullable=False, server_default=FetchedValue())

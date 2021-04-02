@@ -5,7 +5,7 @@ import pandas as pd
 from botocore.exceptions import ClientError, NoCredentialsError
 from decouple import config
 from IPython.core.display import clear_output
-from src.constants import MODELS_REPO, TRAINING_VERSION
+from src.constants import LOAD_MEME_CLF_VERSION, MODELS_REPO
 from src.utils.display import display_df
 
 s3: Any = boto3.client(
@@ -41,18 +41,18 @@ def upload_to_aws(path: str, key: str, fresh: bool) -> bool:
 
 def memeclf_to_aws(fresh: bool) -> None:
     _ = upload_to_aws(
-        MODELS_REPO + f"/{TRAINING_VERSION}/static.json",
-        f"memehub/models/{TRAINING_VERSION}/static.json",
+        MODELS_REPO + f"/{LOAD_MEME_CLF_VERSION}/static.json",
+        f"memehub/models/{LOAD_MEME_CLF_VERSION}/static.json",
         fresh,
     )
     _ = upload_to_aws(
-        MODELS_REPO + f"/{TRAINING_VERSION}/jit/meme_clf.pt",
-        f"memehub/models/{TRAINING_VERSION}/jit/meme_clf.pt",
+        MODELS_REPO + f"/{LOAD_MEME_CLF_VERSION}/jit/meme_clf.pt",
+        f"memehub/models/{LOAD_MEME_CLF_VERSION}/jit/meme_clf.pt",
         fresh,
     )
     _ = upload_to_aws(
-        MODELS_REPO + f"/{TRAINING_VERSION}/jit/features.pt",
-        f"memehub/models/{TRAINING_VERSION}/jit/features.pt",
+        MODELS_REPO + f"/{LOAD_MEME_CLF_VERSION}/jit/features.pt",
+        f"memehub/models/{LOAD_MEME_CLF_VERSION}/jit/features.pt",
         fresh,
     )
 
@@ -60,8 +60,8 @@ def memeclf_to_aws(fresh: bool) -> None:
 def load_all_to_aws(names: List[str], fresh: bool) -> None:
     stats: Dict[str, int] = dict(num_names=len(names), success=0, failed=0)
     for name in names:
-        path = MODELS_REPO + f"/{TRAINING_VERSION}/jit/{name}.pt"
-        Key = f"memehub/models/{TRAINING_VERSION}/jit/{name}.pt"
+        path = MODELS_REPO + f"/{LOAD_MEME_CLF_VERSION}/jit/{name}.pt"
+        Key = f"memehub/models/{LOAD_MEME_CLF_VERSION}/jit/{name}.pt"
         success = upload_to_aws(path, Key, fresh)
         if success:
             stats["success"] += 1

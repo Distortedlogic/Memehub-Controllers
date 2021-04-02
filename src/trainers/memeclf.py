@@ -2,6 +2,7 @@ import json
 import random
 import time
 from itertools import chain, repeat
+from pathlib import Path
 from typing import Any, Callable, Dict, Iterator, List, Tuple, cast
 
 import torch
@@ -82,16 +83,18 @@ class MemeClfSet(IterableDataset[Dataset[torch.Tensor]]):
         name_num: Dict[str, int],
         is_validation: bool,
         is_training: bool,
+        ntpb: float = 0,
+        nmpb: float = 0,
     ):
         self.name_num = name_num
+        self.ntpb = ntpb
+        self.nmpb = nmpb
         if is_training:
             self.transforms = trainingTransforms
-            self.names_to_shuffle = list(
-                chain.from_iterable(repeat(names_to_shuffle, 4))
-            )
+            self.names = list(chain.from_iterable(repeat(names_to_shuffle, 4)))
         else:
             self.transforms = toTensorOnly
-            self.names_to_shuffle = names_to_shuffle
+            self.names = names_to_shuffle
         if is_validation:
             self.meme_entity = MemeCorrectTest
             self.max_name_idx = max_name_idx["test"]
@@ -99,35 +102,44 @@ class MemeClfSet(IterableDataset[Dataset[torch.Tensor]]):
             self.meme_entity = MemeCorrectTrain
             self.max_name_idx = max_name_idx["train"]
 
+    def get_assortment(self):
+        name = self.names.pop()
+        rand = random.randint(0, self.max_name_idx["correct"][name])
+        clause = and_(
+            cast(ClauseElement, self.meme_entity.name == name),
+            cast(ClauseElement, self.meme_entity.name_idx == rand),
+        )
+        path = cast(
+            Tuple[str], training_db.query(self.meme_entity.path).filter(clause).first()
+        )[0]
+        transforms = toTensorOnly if random.random() < 0.15 else self.transforms
+        return (transforms(Img.open(path)), self.name_num[name])
+
     def __iter__(self):
-        random.shuffle(self.names_to_shuffle)
-        for name in self.names_to_shuffle:
-            entity = self.meme_entity
-            rand = random.randint(0, self.max_name_idx["correct"][name])
-            clause = and_(
-                cast(ClauseElement, entity.name == name),
-                cast(ClauseElement, entity.name_idx == rand),
-            )
-            path = cast(
-                Tuple[str], training_db.query(entity.path).filter(clause).first()
-            )[0]
-            yield (
-                self.transforms(Img.open(path)),
-                self.name_num[name],
-            )
+        random.shuffle(self.names)
+        while self.names:
+            rand = random.random()
+            if rand < self.ntpb:
+                pass
+            elif rand > 1 - self.nmpb:
+                pass
+            else:
+                yield self.get_assortment()
 
 
 class MemeClfTrainer(Trainer):
     def __init__(self) -> None:
         self.patience = 0
+        self.name = "meme_clf"
+        super(MemeClfTrainer, self).__init__()
         if input("Do you want fresh?") == "y":
             fresh = True
         else:
             fresh = False
-        super(MemeClfTrainer, self).__init__()
-        self.model: MemeClf = self.get_model(fresh).to(device)
         self.cp = load_cp(MEME_CLF_REPO.format("cp") + "meme_clf", fresh)
-        self.name = "meme_clf"
+        self.model: MemeClf = self.get_model(len(self.static["names"]), fresh).to(
+            device
+        )
 
     def train_epoch(self, dataset: MemeClfSet, batch_size: int, num_workers: int):
         for (inputs, labels) in cast(
@@ -145,11 +157,11 @@ class MemeClfTrainer(Trainer):
 
     def train(
         self,
-        trigger1: float,
-        trigger2: float,
-        finish: float,
-        num_workers: int,
-        num_epochs: int,
+        trigger1: float = 0.8,
+        trigger2: float = 0.9,
+        finish: float = 0.99,
+        num_workers: int = 16,
+        num_epochs: int = 1000,
     ) -> None:
         self.num_epochs = num_epochs
         self.num_workers = num_workers
@@ -184,7 +196,9 @@ class MemeClfTrainer(Trainer):
 
     def hard_reset(self):
         if self.cp["max_acc"] > self.trigger1 and self.new_acc < self.trigger1 - 0.1:
-            self.model: MemeClf = self.get_model(False).to(device)
+            self.model: MemeClf = self.get_model(len(self.static["names"]), False).to(
+                device
+            )
             self.cp = load_cp(MEME_CLF_REPO.format("cp") + "meme_clf", False)
             self.wrong_names = self.get_wrong_names()
             self.num_hard_resets += 1
@@ -326,21 +340,25 @@ class MemeClfTrainer(Trainer):
             pred = cast(int, self.model(image.to(device)).cpu().detach().item())
             return self.humanize_pred(pred)
 
-    def get_model(self, fresh: bool) -> MemeClf:
+    def get_model(self, output_size: int, fresh: bool) -> MemeClf:
         if fresh:
-            model = MemeClf(output_size=len(self.static["names"]))
+            model = MemeClf(output_size=output_size)
         else:
             try:
                 model: MemeClf = torch.load(
                     MEME_CLF_REPO.format("reg") + self.name + ".pt"
                 )
-            except Exception:
+            except Exception as e:
+                print(e)
+                print("wtf")
                 try:
                     model: MemeClf = torch.load(
                         MEME_CLF_REPO.format("reg") + self.name + "_backup.pt"
                     )
-                except Exception:
-                    model = MemeClf(output_size=len(self.static["names"]))
+                except Exception as e:
+                    print(e)
+                    print("wtf")
+                    model = MemeClf(output_size=output_size)
         return model
 
     def check_point(self) -> None:

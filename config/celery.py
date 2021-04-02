@@ -1,6 +1,6 @@
 from celery.schedules import crontab
 
-CELERY_BROKER_URL = "redis://redis:6379"
+CELERY_BROKER_URL = 'pyamqp://rabbitmq:5672'
 CELERY_RESULT_BACKEND = "redis://redis:6379"
 CELERY_ACCEPT_CONTENT = ["json"]
 CELERY_SERIALIZER = "json"

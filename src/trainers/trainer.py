@@ -99,15 +99,24 @@ class Trainer:
                         name=self.name,
                         iteration=self.cp["iteration"],
                         num_correct=f"{self.correct}/{self.total}",
-                        val_num_correct=f"{self.val_correct}/{self.val_total}",
-                        current_val_acc=self.cp["val_acc_history"][-1],
-                        max_val_acc=self.cp["max_val_acc"],
                         patience=self.patience,
                         max_patience=self.cp["max_patience"],
-                        current_acc=self.cp["acc_history"][-1],
-                        max_acc=self.cp["max_acc"],
-                        min_loss=self.cp["min_loss"],
                         num_left=self.num_epochs - self.epoch,
+                        min_loss=self.cp["min_loss"],
+                    )
+                ]
+            )
+        )
+        display_df(
+            pd.DataFrame.from_records(
+                [
+                    dict(
+                        val_correct=f"{self.val_correct}/{self.val_total}",
+                        val_acc=round(self.cp["val_acc_history"][-1], 3),
+                        max_val_acc=round(self.cp["max_val_acc"], 3),
+                        trans_correct=f"{self.correct}/{self.total}",
+                        trans_acc=round(self.cp["acc_history"][-1], 3),
+                        max_trans_acc=round(self.cp["max_acc"], 3),
                     )
                 ]
             )

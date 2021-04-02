@@ -1,4 +1,5 @@
 import json
+from itertools import chain
 from multiprocessing.pool import Pool as mpPool
 from typing import Any, Dict, Iterator, List, Union, cast
 
@@ -70,14 +71,22 @@ class RedditScrapper:
         site_db.commit()
 
     def engine(self, verbose: bool):
-        for raw_memes in self.praw_memes(verbose):
-            with cast(mpPool, Pool(cpu_count())) as workers:
-                if verbose:
-                    _: List[Union[Dict[str, Any], None]] = list(
-                        tqdm(workers.imap_unordered(self.add_meme_to_db, raw_memes))
-                    )
-                else:
-                    _ = list(workers.imap_unordered(self.add_meme_to_db, raw_memes))
+        for meme in chain.from_iterable(self.praw_memes(verbose)):
+            try:
+                redditor = (
+                    site_db.query(Redditor).filter_by(username=meme["username"]).one()
+                )
+            except Exception:
+                redditor = Redditor(username=meme["username"])
+                site_db.add(redditor)
+                site_db.commit()
+            try:
+                meme = site_db.query(RedditMeme).filter_by(url=meme["url"]).one()
+            except Exception:
+                site_db.add(
+                    RedditMeme(**meme, subreddit=self.sub, redditor_id=redditor.id)
+                )
+            site_db.commit()
 
     def scrape_reddit_memes(self, verbose: bool = False):
         print("STARTING CELERY")

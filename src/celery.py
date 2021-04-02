@@ -8,7 +8,7 @@ TASK_LIST = ["src.reddit.tasks", "src.stonks.tasks"]
 
 
 def create_celery_app():
-    celery = Celery(broker="redis://redis:6379", include=TASK_LIST,)
+    celery = Celery(broker="pyamqp://rabbitmq:5672", include=TASK_LIST,)
     _: Any = celery.config_from_object("config.celery")
 
     class ContextTask(Singleton):
