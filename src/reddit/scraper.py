@@ -95,7 +95,7 @@ class RedditScrapper:
             self.end_at = (
                 cast(Arrow, arrow.utcnow())
                 .shift(days=-1)
-                .replace(second=0, minute=0, millisecond=0)
+                .replace(second=0, minute=0)
                 .timestamp
             )
             self.start_at = redditmeme_max_ts(self.sub)

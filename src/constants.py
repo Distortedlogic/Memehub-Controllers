@@ -58,7 +58,7 @@ def get_beginning() -> int:
     return (
         cast(Arrow, arrow.utcnow())
         .shift(days=-31)
-        .replace(hour=0, minute=0, second=0, millisecond=0)
+        .replace(hour=0, minute=0, second=0)
         .timestamp
     )
 
@@ -172,6 +172,7 @@ DONT_USE_TEMPLATES = set(
         "silent movie card",
         "blank white template",
         "warning sign",
+        "gadsden flag",
         "blank blue background",
         "black background",
         "keep calm and carry on black",
@@ -658,7 +659,6 @@ SEEN_MEMES = set(
         "for christmas i want a dragon",
         "friendship ended",
         "futurama fry",
-        "gadsden flag",
         "gang bang",
         "genie rules meme",
         "get in loser",

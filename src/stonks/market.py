@@ -41,10 +41,11 @@ class MemeSet(IterableDataset[Tensor]):
                 self.clause = and_(
                     cast(
                         ClauseElement,
-                        self.entity.createdAt
+                        self.entity.created_at
                         >= cast(Arrow, arrow.utcnow())
-                        .replace(minute=0, second=0, millisecond=0)
-                        .shift(days=-2),
+                        .replace(minute=0, second=0)
+                        .shift(days=-2)
+                        .date(),
                     ),
                     or_(
                         cast(ClauseElement, self.entity.version == None),
@@ -101,6 +102,8 @@ class StonkMarket:
         self.engine()
 
     def evaluate(self):
+        if input("Fresh?"):
+            self.clear()
         self.entity = RedditMeme
         self.eval_mode = True
         self.engine()
@@ -121,8 +124,6 @@ class StonkMarket:
         site_db.commit()
 
     def engine(self):
-        if input("Fresh?"):
-            self.clear()
         self.dataset = MemeSet(self.entity, self.eval_mode, self.is_celery)
         num_name = get_static_names(LOAD_MEME_CLF_VERSION)["num_name"]
         self.start = time()
@@ -133,7 +134,7 @@ class StonkMarket:
                 DataLoader(
                     self.dataset,
                     batch_size=self.batch_size,
-                    num_workers=1,
+                    num_workers=0 if self.is_celery else 1,
                     collate_fn=cast(Any, None),
                 ),
             )
@@ -164,8 +165,10 @@ class StonkMarket:
                 enumerate(zip(ids.numpy().astype(int).tolist(), names)),
             ):
                 self.update_meme(item)
-            if self.iteration % 10 == 0:
+            if not self.is_celery and self.iteration % 10 == 0:
                 self.print_stats()
+            else:
+                print(f"num left - {self.dataset.count()}")
         self.print_stats()
 
     def print_stats(self):
