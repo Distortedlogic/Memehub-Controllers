@@ -50,9 +50,7 @@ LOGS_PATH = "src/logs/"
 Path(BLANKS_REPO).mkdir(parents=True, exist_ok=True)  # type: ignore
 LOG_FILES = ["market.log"]
 for file in LOG_FILES:
-    if not os.path.exists(LOGS_PATH + file):
-        with open(LOGS_PATH + file, "w"):
-            pass
+    Path(LOGS_PATH + file).touch(exist_ok=True)
 
 MONTH_TD = 60 * 60 * 24 * 30
 WEEK_TD = 60 * 60 * 24 * 7
