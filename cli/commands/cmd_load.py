@@ -15,10 +15,16 @@ from src.constants import (
     LOAD_STONK_VERSION,
 )
 
-s3 = boto3.resource(
-    "s3", aws_access_key_id=config("AWS_ID"), aws_secret_access_key=config("AWS_KEY")
+resource = boto3.resource(
+    "resource",
+    aws_access_key_id=config("AWS_ID"),
+    aws_secret_access_key=config("AWS_KEY"),
 )
-bucket: Any = s3.Bucket("memehub")
+bucket: Any = resource.Bucket("memehub")
+
+s3: Any = boto3.client(
+    "s3", aws_access_key_id=config("AWS_ID"), aws_secret_access_key=config("AWS_KEY"),
+)
 
 device = "CPU"
 backend = "torch"
