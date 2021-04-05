@@ -1,0 +1,13 @@
+{
+  "python.linting.enabled": true,
+  "python.linting.pylintEnabled": true,
+  "python.pythonPath": "C:\\ProgramData\\Anaconda3\\envs\\mh\\python.exe",
+  "python.linting.banditEnabled": false,
+  "python.linting.pycodestyleEnabled": false,
+  "python.autoComplete.extraPaths": [
+    "${workspaceFolder}/controller"
+  ],
+  "python.analysis.extraPaths": [
+    "${workspaceFolder}/controller"
+  ]
+}

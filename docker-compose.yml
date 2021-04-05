@@ -1,0 +1,49 @@
+version: "3.7"
+services:
+  flask:
+      image: distortedlogic/flask:latest
+      build: .
+      container_name: flask
+      restart: on-failure
+      command: sh /start.flask.sh
+      volumes:
+        - .:/app
+      ports:
+        - 8001:8000
+  celery:
+    image: distortedlogic/flask:latest
+    container_name: celery
+    restart: on-failure
+    command: celery -A src.celery_app.CELERY worker -B -l info
+    volumes:
+      - .:/app
+  celery-monitor:
+    build:
+        context: .
+        dockerfile: Dockerfile.flower
+    container_name: flower
+    entrypoint: flower
+    command: -A src.celery_app.CELERY
+    restart: on-failure
+    volumes:
+      - .:/app
+    ports:
+      - 5555:5555
+    logging:
+      driver: none
+  notebook:
+    build:
+        context: .
+        dockerfile: Dockerfile.jupyter
+    container_name: notebook
+    restart: on-failure
+    command: jupyter lab
+    ipc: host
+    volumes:
+        - .:/notebooks
+    environment:
+      - JUPYTER_TOKEN=password
+    ports:
+      - 8889:8888
+    logging:
+      driver: none

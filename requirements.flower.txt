@@ -23,7 +23,7 @@ billiard == 3.6.3.0
 
 # C:\github\Memehub\controllers\config\flask.py: 3
 # C:\github\Memehub\controllers\controller\app.py: 1
-celery == 5.0.5
+celery == 4.4.0
 
 # C:\github\Memehub\controllers\cli\cli.py: 1
 # C:\github\Memehub\controllers\cli\commands\cmd_gen.py: 3
@@ -98,14 +98,8 @@ matplotlib
 beautifulsoup4 == 4.9.3
 alembic == 1.4.3
 
-# notebook=6.1.4
-# jupyterlab
-tornado==6.1
 # not found by pigar
 python-json-logger
-cutelog
-PyQt5
-qtpy
 IPython
 retry
 sqlacodegen
@@ -113,7 +107,7 @@ flask-sqlacodegen
 gunicorn == 20.0.4
 psycopg2-binary == 2.8.4
 flask-cors
-# flower == 0.9.7
+flower == 0.9.7
 lxml == 4.5.0
 Pillow == 7.1.2
 watchdog

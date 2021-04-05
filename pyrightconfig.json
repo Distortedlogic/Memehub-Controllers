@@ -1,14 +1,51 @@
 {
+  "pythonVersion": "3.8",
+  "pythonPlatform": "Linux",
   "include": ["src"],
 
   "exclude": ["**/node_modules", "**/__pycache__", "src/typestubs"],
   "useLibraryCodeForTypes": true,
-  "typeCheckingMode": "off",
-  "venvPath": "C:\\Users\\jerme\\anaconda3\\envs\\mmc",
+  "typeCheckingMode": "basic",
+  "venvPath": "C:\\Users\\jerme\\anaconda3\\envs\\mh",
 
   "reportMissingImports": true,
   "reportMissingTypeStubs": false,
+  "strictListInference ":true,
+  "strictDictionaryInference": true,
+  "strictParameterNoneValue": true,
+  "reportImportCycles": "warning",
+  "reportWildcardImportFromLibrary": "warning",
 
-  "pythonVersion": "3.6",
-  "pythonPlatform": "Linux"
+  "reportUnusedImport": "warning",
+  "reportUnusedClass": "warning",
+  "reportUnusedFunction": "warning",
+  "reportUnusedVariable": "warning",
+
+  "reportOptionalSubscript": "warning",
+  "reportOptionalOperand": "warning",
+  "reportOptionalCall": "warning",
+  "reportOptionalIterable": "warning",
+  "reportOptionalMemberAccess": "warning",
+  "reportOptionalContextManager": "warning",
+
+  "reportUnknownParameterType": "warning",
+  "reportUnknownArgumentType": "warning",
+  "reportUnknownLambdaType": "warning",
+  "reportUnknownVariableType": "warning",
+  "reportUnknownMemberType": "none",
+
+  "reportPrivateUsage": "warning",
+  "reportConstantRedefinition": "warning",
+  "reportIncompatibleMethodOverride": "none",
+  "reportIncompatibleVariableOverride": "warning",
+  "reportOverlappingOverload": "warning",
+  "reportMissingTypeArgument": "warning",
+  "reportCallInDefaultInitializer": "warning",
+  "reportUnnecessaryIsInstance": "warning",
+  "reportUnnecessaryCast": "warning",
+  "reportAssertAlwaysTrue": "warning",
+  "reportImplicitStringConcatenation": "warning",
+  "reportUnusedCallResult": "warning",
+  
+  
 }
