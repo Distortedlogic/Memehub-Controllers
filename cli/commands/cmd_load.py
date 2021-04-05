@@ -34,10 +34,10 @@ def download_aws(path: str):
 
 
 def download_jit_repo(repo: str):
-    for name in list(
+    for data in list(
         bucket.objects.filter(Prefix=repo.format("jit").replace("src", "memehub"))
     ):
-        download_aws(repo.format("jit") + f"{name}.pt")
+        download_aws(data.key.replace("memehub", "src"))
 
 
 @click.group()
