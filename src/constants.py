@@ -1,3 +1,4 @@
+import os
 from pathlib import Path
 from typing import Dict, List, cast
 
@@ -30,7 +31,7 @@ LOAD_STONK_REPO = (
     + "/{}/"
 )
 NOT_A_MEME_MODEL_REPO = MODELS_REPO + "not_a_meme/" + NOT_A_MEME_VERSION + "/{}/"
-LOAD_STATIC_PATH=MODELS_REPO + "market/{}/"
+LOAD_STATIC_PATH = MODELS_REPO + "market/{}/"
 
 Path(MODELS_REPO).mkdir(parents=True, exist_ok=True)  # type: ignore
 Path(NOT_MEME_REPO).mkdir(parents=True, exist_ok=True)  # type: ignore
@@ -43,6 +44,15 @@ for folder in ["reg", "jit", "cp"]:
     Path(MEME_CLF_REPO.format(folder)).mkdir(parents=True, exist_ok=True)
     Path(STONK_REPO.format(folder)).mkdir(parents=True, exist_ok=True)
     Path(NOT_A_MEME_MODEL_REPO.format(folder)).mkdir(parents=True, exist_ok=True)
+
+
+LOGS_PATH = "src/logs/"
+Path(BLANKS_REPO).mkdir(parents=True, exist_ok=True)  # type: ignore
+LOG_FILES = ["market.log"]
+for file in LOG_FILES:
+    if not os.path.exists(LOGS_PATH + file):
+        with open(LOGS_PATH + file, "w"):
+            pass
 
 MONTH_TD = 60 * 60 * 24 * 30
 WEEK_TD = 60 * 60 * 24 * 7
