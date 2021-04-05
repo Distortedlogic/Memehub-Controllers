@@ -1,3 +1,4 @@
+import os
 from typing import Any, Dict, List
 
 import boto3
@@ -5,7 +6,12 @@ import pandas as pd
 from botocore.exceptions import ClientError, NoCredentialsError
 from decouple import config
 from IPython.core.display import clear_output
-from src.constants import LOAD_MEME_CLF_VERSION, MODELS_REPO
+from src.constants import (
+    LOAD_MEME_CLF_REPO,
+    LOAD_MEME_CLF_VERSION,
+    LOAD_STATIC_PATH,
+    LOAD_STONK_REPO,
+)
 from src.utils.display import display_df
 
 s3: Any = boto3.client(
@@ -13,23 +19,13 @@ s3: Any = boto3.client(
 )
 
 
-def upload_to_aws(path: str, key: str, fresh: bool) -> bool:
-    if fresh:
-        try:
-            s3.upload_file(path, "memehub", key)
-            return True
-        except FileNotFoundError:
-            print("The file was not found")
-            return False
-        except NoCredentialsError:
-            print("Credentials not available")
-            return False
+def upload_to_aws(path: str) -> bool:
     try:
-        s3.head_object(Bucket="memehub", Key=key)
+        s3.head_object(Bucket="memehub", Key=path.replace("src", "memehub"))
         return True
     except ClientError:
         try:
-            s3.upload_file(path, "memehub", key)
+            s3.upload_file(path, "memehub", path.replace("src", "memehub"))
             return True
         except FileNotFoundError:
             print("The file was not found")
@@ -39,33 +35,26 @@ def upload_to_aws(path: str, key: str, fresh: bool) -> bool:
             return False
 
 
-def memeclf_to_aws(fresh: bool) -> None:
-    _ = upload_to_aws(
-        MODELS_REPO + f"/{LOAD_MEME_CLF_VERSION}/static.json",
-        f"memehub/models/{LOAD_MEME_CLF_VERSION}/static.json",
-        fresh,
+def meme_clf_to_aws() -> None:
+    success = upload_to_aws(
+        LOAD_STATIC_PATH.format(LOAD_MEME_CLF_VERSION) + "static.json"
     )
-    _ = upload_to_aws(
-        MODELS_REPO + f"/{LOAD_MEME_CLF_VERSION}/jit/meme_clf.pt",
-        f"memehub/models/{LOAD_MEME_CLF_VERSION}/jit/meme_clf.pt",
-        fresh,
-    )
-    _ = upload_to_aws(
-        MODELS_REPO + f"/{LOAD_MEME_CLF_VERSION}/jit/features.pt",
-        f"memehub/models/{LOAD_MEME_CLF_VERSION}/jit/features.pt",
-        fresh,
-    )
+    print("static " + str(success))
+    success = upload_to_aws(LOAD_MEME_CLF_REPO.format("jit") + "features.pt")
+    print("features " + str(success))
+    success = upload_to_aws(LOAD_MEME_CLF_REPO.format("jit") + "dense.pt")
+    print("dense " + str(success))
 
 
-def load_all_to_aws(names: List[str], fresh: bool) -> None:
+def stonks_to_aws() -> None:
+    names = [
+        os.path.splitext(filename)[0]
+        for filename in os.listdir(LOAD_STONK_REPO.format("jit"))
+        if "_backup" not in filename
+    ]
     stats: Dict[str, int] = dict(num_names=len(names), success=0, failed=0)
     for name in names:
-        path = MODELS_REPO + f"/{LOAD_MEME_CLF_VERSION}/jit/{name}.pt"
-        Key = f"memehub/models/{LOAD_MEME_CLF_VERSION}/jit/{name}.pt"
-        success = upload_to_aws(path, Key, fresh)
-        if success:
-            stats["success"] += 1
-        else:
-            stats["failed"] += 1
+        success = upload_to_aws(LOAD_STONK_REPO.format("jit") + f"{name}.pt")
+        stats["success" if success else "failed"] += 1
         clear_output()
         display_df(pd.DataFrame.from_records([stats]))

@@ -5,16 +5,14 @@ RUN --mount=type=cache,target=/var/cache/apt \
 	sqlite3 libsqlite3-dev python3-setuptools \
 	--no-install-recommends && rm -rf /var/lib/apt/lists/*
 WORKDIR /app
-ENV  QT_QPA_PLATFORM=offscreen
-ENV PYTHONUNBUFFERED=1 \
-	PYTHONDONTWRITEBYTECODE=1 \
-	TERM=xterm \
-	IS_DOCKER=1
 USER root
 RUN --mount=type=cache,target=/root/.cache/pip pip install torch===1.7.1+cpu \
 	torchvision===0.8.2+cpu -f https://download.pytorch.org/whl/torch_stable.html
 COPY requirements.txt requirements.txt
 RUN --mount=type=cache,target=/root/.cache/pip pip install -r requirements.txt
-
+ENV PYTHONUNBUFFERED=1 \
+	PYTHONDONTWRITEBYTECODE=1 \
+	TERM=xterm \
+	IS_DOCKER=1
 ADD start.flask.sh /
 RUN chmod +x /start.flask.sh

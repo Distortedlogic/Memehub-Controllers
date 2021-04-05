@@ -18,19 +18,26 @@ from src.constants import (
 s3 = boto3.resource(
     "s3", aws_access_key_id=config("AWS_ID"), aws_secret_access_key=config("AWS_KEY")
 )
-bucket = s3.Bucket("memehub")
+bucket: Any = s3.Bucket("memehub")
 
 device = "CPU"
 backend = "torch"
 
 
-def download_aws(local_repo: str, path: str):
-    if not Path(local_repo + path).is_file():
-        with open(local_repo + path, "wb") as f:
+def download_aws(path: str):
+    if not Path(path).is_file():
+        with open(path, "wb") as f:
             try:
-                s3.download_fileobj("memehub", "memehub/models/" + path, f)
+                s3.download_fileobj("memehub", path.replace("src", "memehub"), f)
             except ClientError:
                 pass
+
+
+def download_jit_repo(repo: str):
+    for name in list(
+        bucket.objects.filter(Prefix=repo.format("jit").replace("src", "memehub"))
+    ):
+        download_aws(repo.format("jit") + f"{name}.pt")
 
 
 @click.group()
@@ -42,14 +49,10 @@ def cli():
 @click.command()
 def stonk_market():
     """
-    Load models into redisai
+    Load Stonk models into redisai
     """
-    for name in list(
-        bucket.objects.filter(
-            Prefix=LOAD_STONK_REPO.format("jit").replace("src", "memehub")
-        )
-    ):
-        download_aws(LOAD_STONK_REPO.format("jit"), f"{name}.pt")
+    download_jit_repo(LOAD_MEME_CLF_REPO)
+    download_jit_repo(LOAD_STONK_REPO)
     rai = redisai.Client(host="redis", port=6379)
     current_stonks: List[str] = []
     for name, tag in cast(Tuple[str, str], rai.modelscan()):

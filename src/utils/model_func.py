@@ -8,6 +8,7 @@ import torch
 from sqlalchemy.sql.elements import ClauseElement
 from sqlalchemy.sql.functions import func
 from src.constants import (
+    LOAD_STATIC_PATH,
     MEME_CLF_VERSION,
     MEMES_REPO,
     MODELS_REPO,
@@ -210,12 +211,12 @@ def init_static() -> Static:
 
 def get_static_names(version: str) -> Static:
     try:
-        with open(MODELS_REPO + "market/" + f"{version}/static.json", "r") as f:
+        with open(LOAD_STATIC_PATH.format(version) + "static.json", "r") as f:
             static = json.load(f)
     except Exception:
         try:
             with open(
-                MODELS_REPO + "market/" + f"{version}/static_backup.json", "r"
+                LOAD_STATIC_PATH.format(version) + "static_backup.json", "r"
             ) as f:
                 static = json.load(f)
         except Exception:
@@ -226,9 +227,9 @@ def get_static_names(version: str) -> Static:
             static[prop]
         except Exception:
             static[prop] = init[prop]
-    with open(MODELS_REPO + "market/" + f"{version}/static.json", "w") as f:
+    with open(LOAD_STATIC_PATH.format(version) + "static.json", "w") as f:
         json.dump(static, f, indent=4)
-    with open(MODELS_REPO + "market/" + f"{version}/static_backup.json", "w") as f:
+    with open(LOAD_STATIC_PATH.format(version) + "static_backup.json", "w") as f:
         json.dump(static, f, indent=4)
     return static
 

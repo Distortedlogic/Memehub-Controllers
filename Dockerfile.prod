@@ -1,36 +1,18 @@
 FROM python:3.8.6-buster as builder
 WORKDIR /app
-RUN apt-get update \
-  && apt-get install -qq -y \
-  build-essential libpq-dev tesseract-ocr python3-setuptools \
-  --no-install-recommends\
-  && rm -rf /var/lib/apt/lists/*
-RUN pip install torch===1.7.1 \
-  torchvision===0.8.2 -f https://download.pytorch.org/whl/torch_stable.html
+RUN --mount=type=cache,target=/var/cache/apt \
+  --mount=type=cache,target=/var/lib/apt apt-get update \
+  && apt-get install -qq -y build-essential libpq-dev tesseract-ocr \
+  sqlite3 libsqlite3-dev python3-setuptools \
+  --no-install-recommends && rm -rf /var/lib/apt/lists/*
+RUN pip install torch===1.7.1+cpu \
+  torchvision===0.8.2+cpu -f https://download.pytorch.org/whl/torch_stable.html
 COPY requirements.txt requirements.txt
 RUN pip install -r requirements.txt
 COPY . .
-RUN pip install --editable .
-
-ARG reddit_oauth_0
-ARG reddit_oauth_1
-ARG reddit_oauth_2
-ARG reddit_oauth_3
-ARG reddit_oauth_4
-ARG reddit_oauth_5
-ARG reddit_oauth_6
-ARG reddit_oauth_7
-ARG SECRET_KEY
-ARG FLASK_ENV
-ENV FLASK_ENV=$FLASK_ENV \
-  SECRET_KEY=$SECRET_KEY \
-  reddit_oauth_0=$reddit_oauth_0 \
-  reddit_oauth_1=$reddit_oauth_1 \
-  reddit_oauth_2=$reddit_oauth_2 \
-  reddit_oauth_3=$reddit_oauth_3 \
-  reddit_oauth_4=$reddit_oauth_4 \
-  reddit_oauth_5=$reddit_oauth_5 \
-  reddit_oauth_6=$reddit_oauth_6 \
-  reddit_oauth_7=$reddit_oauth_7 
-
-CMD gunicorn -c "python:config.gunicorn" "src:flask_app.APP"
+ENV PYTHONUNBUFFERED=1 \
+  PYTHONDONTWRITEBYTECODE=1 \
+  TERM=xterm \
+  IS_DOCKER=1
+ADD start.flask.sh /
+RUN chmod +x /start.flask.sh

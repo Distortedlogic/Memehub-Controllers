@@ -30,6 +30,7 @@ LOAD_STONK_REPO = (
     + "/{}/"
 )
 NOT_A_MEME_MODEL_REPO = MODELS_REPO + "not_a_meme/" + NOT_A_MEME_VERSION + "/{}/"
+LOAD_STATIC_PATH=MODELS_REPO + "market/{}/"
 
 Path(MODELS_REPO).mkdir(parents=True, exist_ok=True)  # type: ignore
 Path(NOT_MEME_REPO).mkdir(parents=True, exist_ok=True)  # type: ignore
