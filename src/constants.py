@@ -47,7 +47,7 @@ for folder in ["reg", "jit", "cp"]:
 
 
 LOGS_PATH = "src/logs/"
-Path(BLANKS_REPO).mkdir(parents=True, exist_ok=True)  # type: ignore
+Path(LOGS_PATH).mkdir(parents=True, exist_ok=True)  # type: ignore
 LOG_FILES = ["market.log"]
 for file in LOG_FILES:
     Path(LOGS_PATH + file).touch(exist_ok=True)
