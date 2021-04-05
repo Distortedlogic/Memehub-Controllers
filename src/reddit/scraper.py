@@ -90,7 +90,6 @@ class RedditScrapper:
             site_db.commit()
 
     def scrape_reddit_memes(self, verbose: bool = False):
-        print("STARTING CELERY")
         for self.sub in FULL_SUB_LIST:
             self.end_at = (
                 cast(Arrow, arrow.utcnow())

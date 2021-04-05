@@ -99,6 +99,7 @@ beautifulsoup4 == 4.9.3
 alembic == 1.4.3
 
 # not found by pigar
+python-json-logger
 IPython
 retry
 sqlacodegen

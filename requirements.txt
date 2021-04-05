@@ -102,6 +102,10 @@ alembic == 1.4.3
 # jupyterlab
 tornado==6.1
 # not found by pigar
+python-json-logger
+cutelog
+PyQt5
+qtpy
 IPython
 retry
 sqlacodegen

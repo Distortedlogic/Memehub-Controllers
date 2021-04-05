@@ -1,4 +1,4 @@
-from typing import Any, Dict, cast
+from typing import cast
 
 import pandas as pd
 from sqlalchemy.sql.elements import ClauseElement, and_
@@ -6,42 +6,6 @@ from src.constants import LOAD_MEME_CLF_VERSION
 from src.generated.models import RedditMeme
 from src.session import site_db
 from src.utils.display import display_df
-
-
-def unevaluated(extra_data: Dict[str, Any]):
-    unofficial_memes_done = (
-        site_db.query(RedditMeme)
-        .filter(
-            and_(
-                cast(ClauseElement, RedditMeme.version == LOAD_MEME_CLF_VERSION),
-                cast(ClauseElement, RedditMeme.stonk_official == None),
-            )
-        )
-        .count()
-    )
-    unofficial_memes_found = (
-        site_db.query(RedditMeme)
-        .filter(
-            and_(
-                cast(ClauseElement, RedditMeme.stonk == True),
-                cast(ClauseElement, RedditMeme.version == LOAD_MEME_CLF_VERSION),
-                cast(ClauseElement, RedditMeme.stonk_official == None),
-            )
-        )
-        .count()
-    )
-    display_df(
-        pd.DataFrame.from_records(
-            [
-                dict(
-                    **extra_data,
-                    unofficial_memes_done=unofficial_memes_done,
-                    unofficial_memes_found=unofficial_memes_found,
-                    ratio=unofficial_memes_found / unofficial_memes_done,
-                )
-            ]
-        )
-    )
 
 
 def evaluated():

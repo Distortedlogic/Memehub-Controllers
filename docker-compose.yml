@@ -5,7 +5,7 @@ services:
       build: .
       container_name: flask
       restart: on-failure
-      command: sh /start.sh
+      command: sh /start.flask.sh
       volumes:
         - .:/app
       ports:
@@ -29,6 +29,8 @@ services:
       - .:/app
     ports:
       - 5555:5555
+    logging:
+      driver: none
   notebook:
     build:
         context: .
@@ -43,3 +45,5 @@ services:
       - JUPYTER_TOKEN=password
     ports:
       - 8889:8888
+    logging:
+      driver: none

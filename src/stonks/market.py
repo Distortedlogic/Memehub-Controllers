@@ -1,3 +1,6 @@
+import logging
+import logging.config
+from logging.handlers import SocketHandler
 from time import time
 from typing import Any, Iterator, List, Tuple, cast
 
@@ -5,15 +8,17 @@ import arrow
 import numpy as np
 import pandas as pd
 from arrow.arrow import Arrow
+from config.flask import PROD
 from IPython.core.display import clear_output
 from PIL import UnidentifiedImageError
 from redisai import Client
+from requests.exceptions import ConnectionError
 from sqlalchemy import and_, func
 from sqlalchemy.sql.elements import ClauseElement, or_
 from src.constants import DONT_USE_TEMPLATES, LOAD_MEME_CLF_VERSION
 from src.generated.models import Meme, RedditMeme
 from src.session import site_db
-from src.stonks.utils.evaluate import evaluated, unevaluated
+from src.stonks.utils.evaluate import evaluated
 from src.utils.display import display_df, display_template, pretty_print_dict
 from src.utils.image_funcs import isDeletedException, load_tensor_from_url
 from src.utils.model_func import get_static_names
@@ -22,12 +27,19 @@ from torch import Tensor
 from torch.utils.data import DataLoader
 from torch.utils.data.dataset import IterableDataset
 
+logging.config.fileConfig("src/logging.ini", disable_existing_loggers=False)
+logger = logging.getLogger(__name__)
+logger.propagate = False
+
 
 class MemeSet(IterableDataset[Tensor]):
     def __init__(self, entity: Any, eval_mode: bool, is_celery: bool):
         self.entity = entity
         self.num_deleted = 0
         self.num_bad_images = 0
+        self.num_good_images = 0
+        self.num_connection_errors = 0
+        self.is_celery = is_celery
         if eval_mode:
             self.clause = and_(
                 or_(
@@ -68,20 +80,45 @@ class MemeSet(IterableDataset[Tensor]):
         ):
             try:
                 image = load_tensor_from_url(meme.url, is_deleted=True)
+                self.num_good_images += 1
                 yield (image, meme.id)
             except UnidentifiedImageError:
                 self.num_bad_images += 1
+                logger.info(
+                    "UnidentifiedImageError",
+                    extra=dict(
+                        is_celery=self.is_celery,
+                        num_good_images=self.num_good_images,
+                        num_bad_images=self.num_bad_images,
+                    ),
+                )
+                site_db.delete(meme)
+                site_db.commit()
             except isDeletedException:
                 self.num_deleted += 1
-                # site_db.delete(meme)
-                # site_db.commit()
+                logger.info(
+                    "isDeletedException",
+                    extra=dict(
+                        is_celery=self.is_celery,
+                        num_good_images=self.num_good_images,
+                        num_deleted=self.num_deleted,
+                    ),
+                )
+                site_db.delete(meme)
+                site_db.commit()
+            except ConnectionError:
+                self.num_connection_errors += 1
+                logger.info(
+                    "ConnectionError",
+                    extra=dict(
+                        is_celery=self.is_celery,
+                        num_good_images=self.num_good_images,
+                        num_connection_errors=self.num_connection_errors,
+                    ),
+                )
 
     def count(self):
-        return (
-            site_db.query(self.entity).filter(
-                cast(ClauseElement, self.entity.version == None)
-            )
-        ).count()
+        return site_db.query(self.entity).filter(self.clause).count()
 
 
 class StonkMarket:
@@ -125,6 +162,9 @@ class StonkMarket:
 
     def engine(self):
         self.dataset = MemeSet(self.entity, self.eval_mode, self.is_celery)
+        if self.is_celery:
+            count = self.dataset.count()
+            logger.info("celery num to process - %d", count)
         num_name = get_static_names(LOAD_MEME_CLF_VERSION)["num_name"]
         self.start = time()
         self.now = time()
@@ -167,9 +207,8 @@ class StonkMarket:
                 self.update_meme(item)
             if not self.is_celery and self.iteration % 10 == 0:
                 self.print_stats()
-            else:
-                print(f"num left - {self.dataset.count()}")
-        self.print_stats()
+        if not self.is_celery:
+            self.print_stats()
 
     def print_stats(self):
         clear_output()
@@ -177,15 +216,49 @@ class StonkMarket:
         if self.eval_mode:
             evaluated()
         else:
-            unevaluated(
-                dict(
-                    bad_images=self.dataset.num_bad_images,
-                    is_deleted=self.dataset.num_deleted,
-                    num_left=self.count,
-                    iteration=self.iteration,
+            self.unevaluated()
+            self.time_stats()
+
+    def unevaluated(self):
+        unofficial_memes_done = (
+            site_db.query(RedditMeme)
+            .filter(
+                and_(
+                    cast(ClauseElement, RedditMeme.version == LOAD_MEME_CLF_VERSION),
+                    cast(ClauseElement, RedditMeme.stonk_official == None),
                 )
             )
-            self.time_stats()
+            .count()
+        )
+        unofficial_memes_found = (
+            site_db.query(RedditMeme)
+            .filter(
+                and_(
+                    cast(ClauseElement, RedditMeme.stonk == True),
+                    cast(ClauseElement, RedditMeme.version == LOAD_MEME_CLF_VERSION),
+                    cast(ClauseElement, RedditMeme.stonk_official == None),
+                )
+            )
+            .count()
+        )
+        display_df(
+            pd.DataFrame.from_records(
+                [
+                    dict(
+                        iteration=self.iteration,
+                        num_left=self.count,
+                        unofficial_memes_done=unofficial_memes_done,
+                        unofficial_memes_found=unofficial_memes_found,
+                        find_ratio=unofficial_memes_found / unofficial_memes_done,
+                        done_ratio=round(
+                            unofficial_memes_done
+                            / (self.count + unofficial_memes_done),
+                            3,
+                        ),
+                    )
+                ]
+            )
+        )
 
     def time_stats(self):
         uptime = int(time() - self.start)
