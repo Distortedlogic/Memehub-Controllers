@@ -2,7 +2,7 @@ FROM python:3.8.6-buster
 RUN --mount=type=cache,target=/var/cache/apt \
 	--mount=type=cache,target=/var/lib/apt apt-get update \
 	&& apt-get install -qq -y build-essential libpq-dev tesseract-ocr \
-	sqlite3 libsqlite3-dev python3-setuptools \
+	sqlite3 libsqlite3-dev python3-setuptools tree \
 	--no-install-recommends && rm -rf /var/lib/apt/lists/*
 WORKDIR /app
 USER root
