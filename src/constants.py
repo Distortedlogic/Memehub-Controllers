@@ -4,6 +4,11 @@ from typing import Dict, List, cast
 
 import arrow
 from arrow.arrow import Arrow
+from decouple import config
+
+SECRET_KEY = cast(str, config("SECRET_KEY"))
+FLASK_ENV = cast(str, config("FLASK_ENV"))
+PROD = FLASK_ENV == "production"
 
 LOAD_MEME_CLF_VERSION = "0.4.4"
 LOAD_STONK_VERSION = "0.0"

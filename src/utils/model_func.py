@@ -14,6 +14,7 @@ from src.constants import (
     MODELS_REPO,
     NOT_MEME_REPO,
     NOT_TEMPLATE_REPO,
+    PROD,
     STONK_VERSION,
     backup,
 )
@@ -213,26 +214,25 @@ def get_static_names(version: str) -> Static:
     try:
         with open(LOAD_STATIC_PATH.format(version) + "static.json", "r") as f:
             static = json.load(f)
-    except Exception as e:
-        print(e)
+    except Exception:
         try:
             with open(
                 backup(LOAD_STATIC_PATH.format(version)) + "static.json", "r"
             ) as f:
                 static = json.load(f)
-        except Exception as e:
-            print(e)
-            static = init_static()
-    init = init_static()
-    for prop in init.keys():
-        try:
-            static[prop]
         except Exception:
-            static[prop] = init[prop]
-    with open(LOAD_STATIC_PATH.format(version) + "static.json", "w") as f:
-        json.dump(static, f, indent=4)
-    with open(backup(LOAD_STATIC_PATH.format(version)) + "static.json", "w") as f:
-        json.dump(static, f, indent=4)
+            static = init_static()
+    if not PROD:
+        init = init_static()
+        for prop in init.keys():
+            try:
+                static[prop]
+            except Exception:
+                static[prop] = init[prop]
+        with open(LOAD_STATIC_PATH.format(version) + "static.json", "w") as f:
+            json.dump(static, f, indent=4)
+        with open(backup(LOAD_STATIC_PATH.format(version)) + "static.json", "w") as f:
+            json.dump(static, f, indent=4)
     return static
 
 
