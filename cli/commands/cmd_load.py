@@ -16,9 +16,7 @@ from src.constants import (
 )
 
 resource = boto3.resource(
-    "resource",
-    aws_access_key_id=config("AWS_ID"),
-    aws_secret_access_key=config("AWS_KEY"),
+    "s3", aws_access_key_id=config("AWS_ID"), aws_secret_access_key=config("AWS_KEY"),
 )
 bucket: Any = resource.Bucket("memehub")
 
