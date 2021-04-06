@@ -213,13 +213,15 @@ def get_static_names(version: str) -> Static:
     try:
         with open(LOAD_STATIC_PATH.format(version) + "static.json", "r") as f:
             static = json.load(f)
-    except Exception:
+    except Exception as e:
+        print(e)
         try:
             with open(
                 backup(LOAD_STATIC_PATH.format(version)) + "static.json", "r"
             ) as f:
                 static = json.load(f)
-        except Exception:
+        except Exception as e:
+            print(e)
             static = init_static()
     init = init_static()
     for prop in init.keys():
