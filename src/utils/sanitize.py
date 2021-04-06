@@ -22,11 +22,18 @@ from tqdm import tqdm
 
 def sanitize_template_name(name: str) -> str:
     return (
-        "".join(
-            i for i in name.encode("ascii", "ignore").decode() if i not in ":*?<>|.'(),"
+        (
+            "".join(
+                i
+                for i in name.encode("ascii", "ignore").decode()
+                if i not in ":*?<>|.'()"
+            )
+            .strip()
+            .lower()
         )
-        .strip()
-        .lower()
+        .replace(", ", "_")
+        .replace(" ", "_")
+        .replace(",", "_")
     )
 
 

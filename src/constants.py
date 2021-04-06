@@ -42,7 +42,6 @@ def backup(path: str):
     return path.replace("src/models/", "src/backup/")
 
 
-Path(MODELS_REPO).mkdir(parents=True, exist_ok=True)  # type: ignore
 Path(NOT_MEME_REPO).mkdir(parents=True, exist_ok=True)  # type: ignore
 Path(NOT_TEMPLATE_REPO).mkdir(parents=True, exist_ok=True)  # type: ignore
 Path(MEMES_REPO).mkdir(parents=True, exist_ok=True)  # type: ignore
@@ -53,6 +52,11 @@ for folder in ["reg", "jit", "cp"]:
     Path(MEME_CLF_REPO.format(folder)).mkdir(parents=True, exist_ok=True)
     Path(STONK_REPO.format(folder)).mkdir(parents=True, exist_ok=True)
     Path(NOT_A_MEME_MODEL_REPO.format(folder)).mkdir(parents=True, exist_ok=True)
+    Path(backup(MEME_CLF_REPO).format(folder)).mkdir(parents=True, exist_ok=True)
+    Path(backup(STONK_REPO).format(folder)).mkdir(parents=True, exist_ok=True)
+    Path(backup(NOT_A_MEME_MODEL_REPO).format(folder)).mkdir(
+        parents=True, exist_ok=True
+    )
 
 
 LOGS_PATH = "src/logs/"
