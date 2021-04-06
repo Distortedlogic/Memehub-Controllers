@@ -11,5 +11,7 @@ ENV IS_DOCKER=1
 ENV IS_JUPYTER=1
 RUN mkdir /notebooks
 WORKDIR /notebooks
-USER 1000
 COPY . .
+RUN chown -R 1000:1000 .
+RUN chmod -R 777 .
+USER 1000
