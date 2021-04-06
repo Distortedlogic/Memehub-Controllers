@@ -8,8 +8,8 @@ RUN pip install torch===1.7.1+cpu torchvision===0.8.2+cpu -f https://download.py
 COPY requirements.txt requirements.txt
 RUN pip install -r requirements.txt --cache-dir /root/.cache/pip
 ENV IS_DOCKER=1
+ENV IS_JUPYTER=1
 RUN mkdir /notebooks
 WORKDIR /notebooks
-COPY . .
-RUN chown 1000:100 .
 USER 1000
+COPY . .
