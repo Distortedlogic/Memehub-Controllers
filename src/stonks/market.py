@@ -1,6 +1,5 @@
 import logging
 import logging.config
-from logging.handlers import SocketHandler
 from time import time
 from typing import Any, Iterator, List, Tuple, cast
 
@@ -8,7 +7,6 @@ import arrow
 import numpy as np
 import pandas as pd
 from arrow.arrow import Arrow
-from config.flask import PROD
 from IPython.core.display import clear_output
 from PIL import UnidentifiedImageError
 from redisai import Client

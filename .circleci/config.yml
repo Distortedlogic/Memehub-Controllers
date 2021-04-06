@@ -24,6 +24,12 @@ jobs:
             -t distortedlogic/flask:latest .
       - run: docker login -u distortedlogic -p $DOCKERHUB_TOKEN
       - run: docker push distortedlogic/flask:latest
+      - run:
+          name: Build Backend Docker Image
+          command: docker build
+            -f Dockerfile.jupyter.prod
+            -t distortedlogic/jupyter:latest .
+      - run: docker push distortedlogic/jupyter:latest
 
 workflows:
   build-docker-image-only:
