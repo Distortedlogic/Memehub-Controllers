@@ -31,7 +31,7 @@ class Trainer:
     def get_num_correct(self, is_validation: bool) -> Tuple[int, int]:
         raise NotImplementedError
 
-    def check_point(self) -> None:
+    def check_point(self, is_backup: bool) -> None:
         raise NotImplementedError
 
     def hard_reset(self) -> bool:
@@ -63,7 +63,8 @@ class Trainer:
         if new_val_acc > self.cp["max_val_acc"]:
             self.cp["max_val_acc"] = new_val_acc
             self.patience = 0
-            self.check_point()
+            self.check_point(is_backup=False)
+            self.check_point(is_backup=True)
         else:
             self.patience += 1
             self.cp["max_patience"] = max(self.patience, self.cp["max_patience"])
@@ -86,13 +87,13 @@ class Trainer:
         )
         self.print_graphs()
 
-    def display_wrong_names(self) -> None:
-        df = pd.DataFrame(
-            list(self.get_wrong_names().items()), columns=["name", "num_wrong"]
-        )
-        df = df[df["num_wrong"] != 0]
-        df["img_count"] = cast(Series[str], df["name"]).apply(name_to_img_count)
-        display_df(df.sort_values("num_wrong", ascending=False))
+    # def display_wrong_names(self) -> None:
+    #     df = pd.DataFrame(
+    #         list(self.get_wrong_names().items()), columns=["name", "num_wrong"]
+    #     )
+    #     df = df[df["num_wrong"] != 0]
+    #     df["img_count"] = cast(Series[str], df["name"]).apply(name_to_img_count)
+    #     display_df(df.sort_values("num_wrong", ascending=False))
 
     def display_cp(self) -> None:
         display_df(

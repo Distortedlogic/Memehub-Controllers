@@ -14,8 +14,8 @@ from src.constants import (
     MODELS_REPO,
     NOT_MEME_REPO,
     NOT_TEMPLATE_REPO,
-    STONK_REPO,
     STONK_VERSION,
+    backup,
 )
 from src.schema import (
     MemeCorrectTest,
@@ -51,12 +51,12 @@ def dump_smd(smd: Smd):
     ) as f:
         json.dump(smd, f, indent=4)
     with open(
-        MODELS_REPO
+        backup(MODELS_REPO)
         + "market/"
         + MEME_CLF_VERSION
         + "/stonks/"
         + STONK_VERSION
-        + "/smd_backup.json",
+        + "/smd.json",
         "w",
     ) as f:
         json.dump(smd, f, indent=4)
@@ -81,12 +81,12 @@ def get_smd(fresh: bool) -> Smd:
                 smd = json.load(f)
         except Exception:
             with open(
-                MODELS_REPO
+                backup(MODELS_REPO)
                 + "market/"
                 + MEME_CLF_VERSION
                 + "/stonks/"
                 + STONK_VERSION
-                + "/smd_backup.json",
+                + "/smd.json",
                 "r",
             ) as f:
                 smd = json.load(f)
@@ -216,7 +216,7 @@ def get_static_names(version: str) -> Static:
     except Exception:
         try:
             with open(
-                LOAD_STATIC_PATH.format(version) + "static_backup.json", "r"
+                backup(LOAD_STATIC_PATH.format(version)) + "static.json", "r"
             ) as f:
                 static = json.load(f)
         except Exception:
@@ -229,7 +229,7 @@ def get_static_names(version: str) -> Static:
             static[prop] = init[prop]
     with open(LOAD_STATIC_PATH.format(version) + "static.json", "w") as f:
         json.dump(static, f, indent=4)
-    with open(LOAD_STATIC_PATH.format(version) + "static_backup.json", "w") as f:
+    with open(backup(LOAD_STATIC_PATH.format(version)) + "static.json", "w") as f:
         json.dump(static, f, indent=4)
     return static
 
@@ -269,7 +269,7 @@ def load_cp(cp_path: str, fresh: bool) -> CP:
                 cp = json.load(f)
         except Exception:
             try:
-                with open(cp_path + f"_backup.json", "r") as f:
+                with open(backup(cp_path) + f".json", "r") as f:
                     cp = json.load(f)
             except Exception:
                 cp = init_cp()

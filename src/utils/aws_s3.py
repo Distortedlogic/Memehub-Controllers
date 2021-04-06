@@ -50,7 +50,6 @@ def stonks_to_aws() -> None:
     names = [
         os.path.splitext(filename)[0]
         for filename in os.listdir(LOAD_STONK_REPO.format("jit"))
-        if "_backup" not in filename
     ]
     stats: Dict[str, int] = dict(num_names=len(names), success=0, failed=0)
     for name in names:

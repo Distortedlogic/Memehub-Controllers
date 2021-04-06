@@ -13,7 +13,7 @@ from IPython.display import display
 from PIL import Image as Img
 from sqlalchemy.sql.elements import ClauseElement
 from sqlalchemy.sql.expression import and_
-from src.constants import MEME_CLF_REPO, STONK_REPO
+from src.constants import MEME_CLF_REPO, STONK_REPO, backup
 from src.schema import (
     MemeCorrectTest,
     MemeCorrectTrain,
@@ -81,7 +81,7 @@ class StonkTrainer(Trainer):
             ).to(device)
         except Exception:
             self.features: nn.Module = torch.load(
-                MEME_CLF_REPO.format("reg") + "features_backup.pt"
+                backup(MEME_CLF_REPO.format("reg")) + "features.pt"
             ).to(device)
         self.features = self.features.eval()
         self.model: Stonk = self.get_model(100).to(device)
@@ -219,28 +219,22 @@ class StonkTrainer(Trainer):
                 print(e)
                 try:
                     model: Stonk = torch.load(
-                        STONK_REPO.format("reg") + self.name + "_backup.pt"
+                        backup(STONK_REPO.format("reg")) + self.name + ".pt"
                     )
                 except Exception as e:
                     print(e)
                     model = Stonk(size)
         return model
 
-    def check_point(self) -> None:
+    def check_point(self, is_backup: bool) -> None:
         self.model = self.model.to(torch.device("cpu"))
-        torch.save(self.model, STONK_REPO.format("reg") + self.name + ".pt")
-        torch.save(self.model, STONK_REPO.format("reg") + self.name + "_backup.pt")
+        REPO = backup(MEME_CLF_REPO) if is_backup else MEME_CLF_REPO
+        torch.save(self.model, REPO.format("reg") + self.name + ".pt")
         jit.save(
             cast(ScriptModule, jit.script(self.model)),
-            STONK_REPO.format("jit") + self.name + ".pt",
+            REPO.format("jit") + self.name + ".pt",
         )
-        jit.save(
-            cast(ScriptModule, jit.script(self.model)),
-            STONK_REPO.format("jit") + self.name + "_backup.pt",
-        )
-        with open(STONK_REPO.format("cp") + self.name + ".json", "w") as f:
-            json.dump(self.cp, f, indent=4)
-        with open(STONK_REPO.format("cp") + self.name + "_backup.json", "w") as f:
+        with open(REPO.format("cp") + self.name + ".json", "w") as f:
             json.dump(self.cp, f, indent=4)
         self.model = self.model.to(torch.device("cuda:0"))
 

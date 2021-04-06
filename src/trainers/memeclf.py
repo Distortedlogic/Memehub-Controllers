@@ -13,7 +13,7 @@ from IPython.display import display
 from PIL import Image as Img
 from sqlalchemy.sql.elements import ClauseElement
 from sqlalchemy.sql.expression import and_
-from src.constants import MEME_CLF_REPO
+from src.constants import MEME_CLF_REPO, backup
 from src.schema import MemeCorrectTest, MemeCorrectTrain
 from src.session import training_db
 from src.trainers.trainer import Trainer
@@ -353,7 +353,7 @@ class MemeClfTrainer(Trainer):
                 print("wtf")
                 try:
                     model: MemeClf = torch.load(
-                        MEME_CLF_REPO.format("reg") + self.name + "_backup.pt"
+                        backup(MEME_CLF_REPO).format("reg") + self.name + ".pt"
                     )
                 except Exception as e:
                     print(e)
@@ -361,35 +361,20 @@ class MemeClfTrainer(Trainer):
                     model = MemeClf(output_size=output_size)
         return model
 
-    def check_point(self) -> None:
+    def check_point(self, is_backup: bool) -> None:
         self.model = self.model.to(torch.device("cpu"))
-        torch.save(self.model.features, MEME_CLF_REPO.format("reg") + "features.pt")
-        torch.save(
-            self.model.features, MEME_CLF_REPO.format("reg") + "features_backup.pt",
-        )
+        REPO = backup(MEME_CLF_REPO) if is_backup else MEME_CLF_REPO
+        torch.save(self.model.features, REPO.format("reg") + "features.pt")
         jit.save(
             cast(ScriptModule, jit.script(self.model.features)),
-            MEME_CLF_REPO.format("jit") + "features.pt",
-        )
-        jit.save(
-            cast(ScriptModule, jit.script(self.model.features)),
-            MEME_CLF_REPO.format("jit") + "features_backup.pt",
+            REPO.format("jit") + "features.pt",
         )
         jit.save(
             cast(ScriptModule, jit.script(self.model.dense)),
-            MEME_CLF_REPO.format("jit") + "dense.pt",
+            REPO.format("jit") + "dense.pt",
         )
-        jit.save(
-            cast(ScriptModule, jit.script(self.model.dense)),
-            MEME_CLF_REPO.format("jit") + "dense_backup.pt",
-        )
-        torch.save(self.model, MEME_CLF_REPO.format("reg") + self.name + ".pt")
-        torch.save(
-            self.model, MEME_CLF_REPO.format("reg") + self.name + "_backup.pt",
-        )
-        with open(MEME_CLF_REPO.format("cp") + self.name + ".json", "w") as f:
-            json.dump(self.cp, f, indent=4)
-        with open(MEME_CLF_REPO.format("cp") + self.name + "_backup.json", "w",) as f:
+        torch.save(self.model, REPO.format("reg") + self.name + ".pt")
+        with open(REPO.format("cp") + self.name + ".json", "w") as f:
             json.dump(self.cp, f, indent=4)
         self.model = self.model.to(torch.device("cuda:0"))
 

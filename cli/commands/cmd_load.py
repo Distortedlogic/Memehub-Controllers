@@ -55,8 +55,8 @@ def stonk_market():
     """
     Load Stonk models into redisai
     """
-    download_jit_repo(LOAD_MEME_CLF_REPO)
-    download_jit_repo(LOAD_STONK_REPO)
+    # download_jit_repo(LOAD_MEME_CLF_REPO)
+    # download_jit_repo(LOAD_STONK_REPO)
     rai = redisai.Client(host="redis", port=6379)
     current_stonks: List[str] = []
     for name, tag in cast(Tuple[str, str], rai.modelscan()):
