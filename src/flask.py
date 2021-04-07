@@ -1,4 +1,5 @@
 from typing import Any, Dict, cast
+from uuid import uuid4
 
 import numpy as np
 from flask_cors import CORS
@@ -22,9 +23,11 @@ def create_app():
         images = [
             load_tensor_from_url(cast(str, request.json["url"]), is_deleted=False)
         ]
-        _ = rai.tensorset("image", np.array(images, dtype=np.float32))
-        _ = rai.modelrun("MemeClf", ["image"], ["out"])
-        pred = num_name[str(cast(int, rai.tensorget("out")[0]))]
+        _ = rai.tensorset(hash := str(uuid4()), np.array(images, dtype=np.float32))
+        _ = rai.modelrun("features", hash, hash)
+        _ = rai.modelrun("dense", hash, hash)
+        pred = num_name[str(cast(int, rai.tensorget(hash)[0]))]
+        _ = rai.delete(hash)
         return cast(Dict[str, Any], jsonify(dict(pred=pred)))
 
     return app

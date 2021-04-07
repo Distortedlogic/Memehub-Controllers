@@ -125,6 +125,7 @@ class StonkMarket:
         self.batch_size = 128
         self.is_celery = is_celery
         self.celery_tag = "_celery" if is_celery else ""
+        self.num_name = get_static_names(LOAD_MEME_CLF_VERSION)["num_name"]
 
     def reddit_engine(self):
         self.entity = RedditMeme
@@ -163,7 +164,7 @@ class StonkMarket:
         if self.is_celery:
             count = self.dataset.count()
             logger.info("celery num to process - %d", count)
-        num_name = get_static_names(LOAD_MEME_CLF_VERSION)["num_name"]
+
         self.start = time()
         self.now = time()
         for self.iteration, (images, ids) in enumerate(
@@ -187,7 +188,7 @@ class StonkMarket:
                 "dense", "features_out" + self.celery_tag, "dense_out" + self.celery_tag
             )
             names: List[str] = [
-                num_name[str(cast(int, np.argmax(arr)))]
+                self.num_name[str(cast(int, np.argmax(arr)))]
                 for arr in cast(
                     List[Tensor], self.rai.tensorget("dense_out" + self.celery_tag)
                 )
@@ -205,8 +206,16 @@ class StonkMarket:
                 self.update_meme(item)
             if not self.is_celery and self.iteration % 10 == 0:
                 self.print_stats()
+        self.clear_tensors()
         if not self.is_celery:
             self.print_stats()
+
+    def clear_tensors(self):
+        _ = self.rai.delete("images" + self.celery_tag)
+        _ = self.rai.delete("features_out" + self.celery_tag)
+        _ = self.rai.delete("dense" + self.celery_tag)
+        for name in self.num_name.values():
+            _ = self.rai.delete(f"{name}_out" + self.celery_tag)
 
     def print_stats(self):
         clear_output()
