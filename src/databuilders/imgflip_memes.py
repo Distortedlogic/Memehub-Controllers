@@ -53,7 +53,9 @@ def engine_mp(name_page: Tuple[str, str]) -> None:
             img_urls_from_page(page.format(i)) for i in range(1, num_pages)
         )
     )
-    for url in urls:
+    counter = len(os.listdir(MEMES_REPO + name))
+    while (counter := counter + 1) <= 1000 and urls:
+        url = urls.pop()
         filename = url.split("/")[-1]
         path = MEMES_REPO + f"{name}/{filename}"
         _ = download_img_from_url(url, path)
@@ -79,7 +81,7 @@ def download_imgflip_memes(fresh: bool = False):
         )
     with Pool(cpu_count()) as workers:
         _: List[None] = list(
-            tqdm(workers.imap_unordered(engine_mp, name_page), total=len(name_page),)
+            tqdm(workers.imap_unordered(engine_mp, name_page), total=len(name_page))
         )
 
 

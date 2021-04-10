@@ -2,9 +2,9 @@ import json
 import random
 import time
 from itertools import chain, repeat
-from pathlib import Path
-from typing import Any, Callable, Dict, Iterator, List, Tuple, cast
+from typing import Any, Callable, Dict, Iterator, List, Tuple, Union, cast
 
+import matplotlib.pyplot as plt
 import torch
 import torch.cuda as cuda
 import torch.nn as nn
@@ -25,10 +25,14 @@ from torch._C import ScriptModule
 from torch.optim import SGD
 from torch.utils.data.dataloader import DataLoader
 from torch.utils.data.dataset import Dataset, IterableDataset
+from torch_lr_finder import LRFinder
 from torchvision import transforms
 from torchvision.models import vgg16
 
 device = torch.device("cuda:0" if cuda.is_available() else "cpu")
+weight_decay = 0.000_001
+
+lr = 0.000_003
 
 
 class MemeClf(nn.Module):
@@ -42,36 +46,29 @@ class MemeClf(nn.Module):
             nn.Linear(4096, 4096),
             nn.ReLU(True),
             nn.Linear(4096, output_size),
-            nn.Softmax(dim=1),
         )
-        self.features_opt = SGD(
-            self.features.parameters(),
-            lr=0.001,
+        self.opt = SGD(
+            [
+                {"params": self.features.parameters()},
+                {"params": self.dense.parameters()},
+            ],
+            lr=lr,
             momentum=0.9,
             dampening=0,
-            weight_decay=0.000_001,
-            nesterov=True,
-        )
-        self.dense_opt = SGD(
-            self.dense.parameters(),
-            lr=0.001,
-            momentum=0.9,
-            dampening=0,
-            weight_decay=0.000_001,
+            weight_decay=weight_decay,
             nesterov=True,
         )
         self.loss: Callable[..., torch.Tensor] = nn.CrossEntropyLoss()
 
     def train_step(self, batch: torch.Tensor, labels: torch.Tensor) -> float:
-        self.features_opt.zero_grad()
-        self.dense_opt.zero_grad()
+        self.opt.zero_grad()
         loss = self.loss(self.dense(self.features(batch)), labels)
         loss.backward(torch.ones_like(loss))
-        _ = self.features_opt.step()
-        _ = self.dense_opt.step()
+        _ = self.opt.step()
         return cast(float, loss.detach().cpu().item())
 
     def forward(self, images: torch.Tensor) -> torch.Tensor:
+        # return self.dense(self.features(images))
         return torch.argmax(self.dense(self.features(images)), dim=1)
 
 
@@ -83,17 +80,18 @@ class MemeClfSet(IterableDataset[Dataset[torch.Tensor]]):
         name_num: Dict[str, int],
         is_validation: bool,
         is_training: bool,
+        use_transforms: Union[bool, None],
         ntpb: float = 0,
         nmpb: float = 0,
     ):
         self.name_num = name_num
         self.ntpb = ntpb
         self.nmpb = nmpb
+        self.is_training = is_training
+        self.use_transforms = use_transforms
         if is_training:
-            self.transforms = trainingTransforms
             self.names = list(chain.from_iterable(repeat(names_to_shuffle, 4)))
         else:
-            self.transforms = toTensorOnly
             self.names = names_to_shuffle
         if is_validation:
             self.meme_entity = MemeCorrectTest
@@ -102,6 +100,9 @@ class MemeClfSet(IterableDataset[Dataset[torch.Tensor]]):
             self.meme_entity = MemeCorrectTrain
             self.max_name_idx = max_name_idx["train"]
 
+    def __len__(self):
+        return len(self.names)
+
     def get_assortment(self):
         name = self.names.pop()
         rand = random.randint(0, self.max_name_idx["correct"][name])
@@ -109,10 +110,15 @@ class MemeClfSet(IterableDataset[Dataset[torch.Tensor]]):
             cast(ClauseElement, self.meme_entity.name == name),
             cast(ClauseElement, self.meme_entity.name_idx == rand),
         )
-        path = cast(
-            Tuple[str], training_db.query(self.meme_entity.path).filter(clause).first()
-        )[0]
-        transforms = toTensorOnly if random.random() < 0.15 else self.transforms
+        q = training_db.query(self.meme_entity.path).filter(clause)
+        path = cast(Tuple[str], q.first())[0]
+        if self.is_training and self.use_transforms == None:
+            transforms = toTensorOnly if random.random() < 0.15 else trainingTransforms
+        else:
+            if self.use_transforms:
+                transforms = trainingTransforms
+            else:
+                transforms = toTensorOnly
         return (transforms(Img.open(path)), self.name_num[name])
 
     def __iter__(self):
@@ -140,6 +146,42 @@ class MemeClfTrainer(Trainer):
         self.model: MemeClf = self.get_model(len(self.static["names"]), fresh).to(
             device
         )
+
+    def lr_fider(self, start_lr: float, end_lr: float, num_iter: int):
+        lr_finder = LRFinder(self.model, self.model.opt, self.model.loss, device="cuda")
+        lr_finder.range_test(
+            DataLoader(
+                MemeClfSet(
+                    self.static["max_name_idx"],
+                    self.static["names_to_shuffle"],
+                    self.static["name_num"],
+                    is_validation=False,
+                    is_training=True,
+                    use_transforms=None,
+                ),
+                batch_size=64,
+                num_workers=16,
+                collate_fn=cast(Any, None),
+            ),
+            # val_loader=DataLoader(
+            #     MemeClfSet(
+            #         self.static["max_name_idx"],
+            #         self.static["names_to_shuffle"],
+            #         self.static["name_num"],
+            #         is_validation=True,
+            #         is_training=False,
+            #     ),
+            #     batch_size=64,
+            #     num_workers=16,
+            #     collate_fn=cast(Any, None),
+            # ),
+            start_lr=start_lr,
+            end_lr=end_lr,
+            num_iter=num_iter,
+        )
+        _ = plt.figure(figsize=(20, 6))
+        _ = lr_finder.plot()
+        lr_finder.reset()
 
     def train_epoch(self, dataset: MemeClfSet, batch_size: int, num_workers: int):
         for (inputs, labels) in cast(
@@ -184,6 +226,7 @@ class MemeClfTrainer(Trainer):
                     self.static["name_num"],
                     is_validation=False,
                     is_training=True,
+                    use_transforms=None,
                 ),
                 64,
                 self.num_workers,
@@ -212,7 +255,7 @@ class MemeClfTrainer(Trainer):
         self.wrong_names = self.get_wrong_names()
         for self.epoch in range(1, self.num_epochs):
             rounds = 10 if self.cp["max_acc"] < self.trigger2 else 3
-            for _ in range(rounds):
+            for self.wrong_name_round in range(rounds):
                 self.train_epoch(
                     MemeClfSet(
                         self.static["max_name_idx"],
@@ -220,6 +263,7 @@ class MemeClfTrainer(Trainer):
                         self.static["name_num"],
                         is_validation=False,
                         is_training=True,
+                        use_transforms=None,
                     ),
                     batch_size=64,
                     num_workers=self.num_workers,
@@ -231,9 +275,14 @@ class MemeClfTrainer(Trainer):
                 print(self.wrong_names)
                 if self.cp["max_acc"] > self.finish:
                     break
+            if self.cp["max_acc"] > self.finish:
+                break
             self.wrong_names = self.get_wrong_names()
 
-    def get_num_correct(self, is_validation: bool) -> Tuple[int, int]:
+    def get_num_correct(
+        self, is_validation: bool, use_transforms: bool
+    ) -> Tuple[int, int]:
+        self.model = self.model.eval()
         with torch.no_grad():
             correct = 0
             total = 0
@@ -246,9 +295,10 @@ class MemeClfTrainer(Trainer):
                         self.static["name_num"],
                         is_validation=is_validation,
                         is_training=False,
+                        use_transforms=use_transforms,
                     ),
                     batch_size=64,
-                    num_workers=1,
+                    num_workers=16,
                     collate_fn=cast(Any, None),
                 ),
             ):
@@ -256,11 +306,13 @@ class MemeClfTrainer(Trainer):
                 sum_tensor = cast(torch.Tensor, sum(pred == labels.to(device)))
                 correct += int(sum_tensor.cpu().detach().item())
                 total += len(labels)
+            self.model = self.model.train()
             return correct, total
 
     def get_wrong_names(self) -> List[str]:
+        wrong_names = {name: 0 for name in self.static["names"]}
+        self.model = self.model.eval()
         with torch.no_grad():
-            wrong_names = {name: 0 for name in self.static["names"]}
             for (inputs, labels) in cast(
                 Iterator[Tuple[torch.Tensor, torch.Tensor]],
                 DataLoader(
@@ -269,10 +321,11 @@ class MemeClfTrainer(Trainer):
                         self.static["names_to_shuffle"],
                         self.static["name_num"],
                         is_validation=False,
-                        is_training=False,
+                        is_training=True,
+                        use_transforms=None,
                     ),
                     batch_size=64,
-                    num_workers=64,
+                    num_workers=16,
                     collate_fn=cast(Any, None),
                 ),
             ):
@@ -281,11 +334,9 @@ class MemeClfTrainer(Trainer):
                 for label, pred in cast(Iterator[Tuple[int, int]], zip(labels, preds)):
                     if label != pred:
                         wrong_names[self.humanize_pred(label)] += 1
+            self.model = self.model.train()
             return list(
-                map(
-                    lambda x: x[0],
-                    filter(lambda x: x[1] > 0, list(wrong_names.items())),
-                )
+                map(lambda x: x[0], filter(lambda x: x[1] > 0, wrong_names.items()),)
             )
 
     def test_model(self, only_wrong: bool = False):
@@ -298,6 +349,7 @@ class MemeClfTrainer(Trainer):
             self.static["name_num"],
             is_validation=False,
             is_training=False,
+            use_transforms=False,
         ):
             clear_output()
             name = self.humanize_pred(num)
@@ -311,9 +363,11 @@ class MemeClfTrainer(Trainer):
                 print(f"Target - {name}")
                 print(f"Result - {pred}")
                 image = transforms.ToPILImage()(image).convert("RGB")
-                print("Meme/Template")
+                print("meme/pred/target")
                 _ = display(image)
+                display_template(pred)
                 display_template(name)
+
             if (
                 self.manual
                 and (

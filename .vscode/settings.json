@@ -9,5 +9,6 @@
   ],
   "python.analysis.extraPaths": [
     "${workspaceFolder}/controller"
-  ]
+  ],
+  "restructuredtext.languageServer.disabled": true
 }

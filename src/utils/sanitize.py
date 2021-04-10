@@ -2,7 +2,7 @@ import json
 import os
 import shutil
 from multiprocessing import Pool, cpu_count
-from typing import Any, List, Tuple, cast
+from typing import Any, List, Set, Tuple, cast
 
 from sqlalchemy.sql.elements import ClauseElement
 from sqlalchemy.sql.schema import Column
@@ -22,18 +22,14 @@ from tqdm import tqdm
 
 def sanitize_template_name(name: str) -> str:
     return (
-        (
-            "".join(
-                i
-                for i in name.encode("ascii", "ignore").decode()
-                if i not in ":*?<>|.'()"
-            )
-            .strip()
-            .lower()
+        "".join(
+            i for i in name.encode("ascii", "ignore").decode() if i not in ":*?<>|.'()"
         )
-        .replace(", ", "_")
-        .replace(" ", "_")
-        .replace(",", "_")
+        .strip()
+        .lower()
+        .replace("_", " ")
+        .replace(", ", " ")
+        .replace(",", " ")
     )
 
 
@@ -109,7 +105,8 @@ def sanitize_imgnet():
 
 
 def fix_constants():
-    DONT_USE = set()
+    print("fired")
+    DONT_USE: Set[str] = set()
     for name in DONT_USE_TEMPLATES:
         DONT_USE.add(sanitize_template_name(name))
 

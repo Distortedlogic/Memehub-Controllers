@@ -1,0 +1,14 @@
+name: mh
+channels:
+  - pytorch
+  - defaults
+  - conda-forge
+dependencies:
+  - anaconda
+  - python=3.8
+  - torchvision
+  - cudatoolkit
+  - pytorch
+  - black
+  - alembic
+prefix: C:\ProgramData\Anaconda3\envs\mh

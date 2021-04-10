@@ -240,11 +240,13 @@ class CP(TypedDict):
     iteration: int
     total_time: int
     max_acc: float
+    max_trans_acc: float
     max_val_acc: float
     max_patience: int
     min_loss: float
     loss_history: List[float]
     acc_history: List[float]
+    trans_acc_history: List[float]
     val_acc_history: List[float]
 
 
@@ -254,11 +256,13 @@ def init_cp() -> CP:
         "iteration": 0,
         "total_time": 0,
         "max_acc": 0,
+        "max_trans_acc": 0,
         "max_val_acc": 0,
         "max_patience": 0,
         "min_loss": np.inf,
         "loss_history": [],
         "acc_history": [],
+        "trans_acc_history": [],
         "val_acc_history": [],
     }
     return cp
