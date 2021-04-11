@@ -17,7 +17,7 @@ from src.constants import MEME_CLF_REPO, backup
 from src.schema import MemeCorrectTest, MemeCorrectTrain
 from src.session import training_db
 from src.trainers.trainer import Trainer
-from src.utils.display import display_template
+from src.utils.display import display_template, pretty_print_dict
 from src.utils.model_func import TestTrainToMax, load_cp
 from src.utils.transforms import toTensorOnly, trainingTransforms
 from torch import cuda, jit, nn
@@ -30,9 +30,9 @@ from torchvision import transforms
 from torchvision.models import vgg16
 
 device = torch.device("cuda:0" if cuda.is_available() else "cpu")
-weight_decay = 0.000_001
+weight_decay = 0.000_000_1
 
-lr = 0.000_003
+lr = 0.000_001
 
 
 class MemeClf(nn.Module):
@@ -113,7 +113,7 @@ class MemeClfSet(IterableDataset[Dataset[torch.Tensor]]):
         q = training_db.query(self.meme_entity.path).filter(clause)
         path = cast(Tuple[str], q.first())[0]
         if self.is_training and self.use_transforms == None:
-            transforms = toTensorOnly if random.random() < 0.15 else trainingTransforms
+            transforms = toTensorOnly if random.random() < 0.05 else trainingTransforms
         else:
             if self.use_transforms:
                 transforms = trainingTransforms
@@ -198,18 +198,11 @@ class MemeClfTrainer(Trainer):
             )
 
     def train(
-        self,
-        trigger1: float = 0.8,
-        trigger2: float = 0.9,
-        finish: float = 0.99,
-        num_workers: int = 16,
-        num_epochs: int = 1000,
+        self, trigger1: float = 0.8, num_workers: int = 16, num_epochs: int = 1000,
     ) -> None:
         self.num_epochs = num_epochs
         self.num_workers = num_workers
         self.trigger1 = trigger1
-        self.trigger2 = trigger2
-        self.finish = finish
         self.losses: List[float] = []
         self.begin = int(time.time())
         self.now = time.time()
@@ -254,8 +247,7 @@ class MemeClfTrainer(Trainer):
         self.losses: List[float] = []
         self.wrong_names = self.get_wrong_names()
         for self.epoch in range(1, self.num_epochs):
-            rounds = 10 if self.cp["max_acc"] < self.trigger2 else 3
-            for self.wrong_name_round in range(rounds):
+            for self.wrong_name_round in range(3):
                 self.train_epoch(
                     MemeClfSet(
                         self.static["max_name_idx"],
@@ -273,11 +265,9 @@ class MemeClfTrainer(Trainer):
                 print(f"num wrong names - {len(self.wrong_names)}")
                 self.print_stats()
                 print(self.wrong_names)
-                if self.cp["max_acc"] > self.finish:
-                    break
-            if self.cp["max_acc"] > self.finish:
-                break
             self.wrong_names = self.get_wrong_names()
+            if len(self.wrong_names) < 20:
+                break
 
     def get_num_correct(
         self, is_validation: bool, use_transforms: bool
@@ -339,38 +329,52 @@ class MemeClfTrainer(Trainer):
                 map(lambda x: x[0], filter(lambda x: x[1] > 0, wrong_names.items()),)
             )
 
-    def test_model(self, only_wrong: bool = False):
+    def test_model(
+        self,
+        only_wrong: bool,
+        is_training: bool,
+        use_transforms: bool,
+        is_validation: bool,
+    ):
         self.model = self.model.eval()
-        self.manual = True
         wrong_names = {name: 0 for name in self.static["names"]}
+        self.num_wrong = 0
+        self.num_right = 0
         for (image, num) in MemeClfSet(
             self.static["max_name_idx"],
             self.static["names_to_shuffle"],
             self.static["name_num"],
-            is_validation=False,
-            is_training=False,
-            use_transforms=False,
+            is_validation=is_validation,
+            is_training=is_training,
+            use_transforms=use_transforms,
         ):
             clear_output()
             name = self.humanize_pred(num)
             pred = self.predict(image)
             if pred != name:
-                wrong_names[pred] += 1
-            if self.manual:
-                if only_wrong and name == pred:
-                    continue
-                print(f"Model - {self.name}")
-                print(f"Target - {name}")
-                print(f"Result - {pred}")
-                image = transforms.ToPILImage()(image).convert("RGB")
-                print("meme/pred/target")
-                _ = display(image)
-                display_template(pred)
-                display_template(name)
-
+                wrong_names[name] += 1
+                self.num_wrong += 1
+            else:
+                self.num_right += 1
+            if only_wrong and name == pred:
+                continue
+            pretty_print_dict({k: v for k, v in wrong_names.items() if v > 0})
+            pretty_print_dict(
+                {
+                    "num_right": self.num_right,
+                    "num_wrong": self.num_wrong,
+                    "model": self.name,
+                    "target": name,
+                    "pred": pred,
+                }
+            )
+            image = transforms.ToPILImage()(image).convert("RGB")
+            print("meme/pred/target")
+            _ = display(image)
+            display_template(pred)
+            display_template(name)
             if (
-                self.manual
-                and (
+                (
                     keypress := input(
                         """
                         hit enter for next image
@@ -383,10 +387,7 @@ class MemeClfTrainer(Trainer):
                 in "qckm"
                 and keypress
             ):
-                if keypress == "m":
-                    self.manual = False
-                else:
-                    return keypress
+                return keypress
 
     def predict(self, image: torch.Tensor) -> str:
         with torch.no_grad():
