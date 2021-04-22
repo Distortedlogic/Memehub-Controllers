@@ -9,7 +9,7 @@ SECRET_KEY = cast(str, config("SECRET_KEY"))
 FLASK_ENV = cast(str, config("FLASK_ENV"))
 PROD = FLASK_ENV == "production"
 
-LOAD_MEME_CLF_VERSION = "0.4.4"
+LOAD_MEME_CLF_VERSION = "0.4.5"
 LOAD_STONK_VERSION = "0.0"
 MEME_CLF_VERSION = "0.4.5"
 STONK_VERSION = "0.0"
@@ -537,7 +537,7 @@ REPLICATED_TEMPLATES_GROUPED = [
         "vince mcmahon",
         "vince mcmahon",
     ],
-    ["waiting skeleton", "waiting skeleton"],
+    ["waiting skeleton", "skeleton waiting"],
     ["we dont do that here", "we dont do that here"],
     ["captain phillips - im the captain now", "im the captain now", "look at me"],
     ["oprah you get a car everybody gets a car", "oprah you get a"],
@@ -564,7 +564,6 @@ SEEN_MEMES = set(
         "omg karen",
         "triggered feminist",
         "ill just wait here",
-        "waiting skeleton",
         "this morgan freeman",
         "genie rules meme",
         "sad linus",

@@ -48,10 +48,10 @@ class Stonk(nn.Module):
         )
         self.stonk_opt = SGD(
             self.features_to_stonk.parameters(),
-            lr=0.000_000_1,
+            lr=0.000_01,
             momentum=0.9,
             dampening=0,
-            weight_decay=0.000_001,
+            weight_decay=0,  # 0.000_001,
             nesterov=True,
         )
         self.loss_func: Callable[..., torch.Tensor] = BCELoss()
@@ -156,6 +156,7 @@ class StonkTrainer(Trainer):
     def update_loss(self):
         self.cp["min_loss"] = min(min(self.losses), self.cp["min_loss"])
         self.cp["loss_history"] += self.losses
+        self.new_loss = self.losses[-1]
         self.losses: List[float] = []
 
     def forward(self, images: torch.Tensor) -> torch.Tensor:
@@ -233,7 +234,7 @@ class StonkTrainer(Trainer):
 
     def check_point(self, is_backup: bool) -> None:
         self.model = self.model.to(torch.device("cpu"))
-        REPO = backup(MEME_CLF_REPO) if is_backup else MEME_CLF_REPO
+        REPO = backup(STONK_REPO) if is_backup else STONK_REPO
         torch.save(self.model, REPO.format("reg") + self.name + ".pt")
         jit.save(
             cast(ScriptModule, jit.script(self.model)),

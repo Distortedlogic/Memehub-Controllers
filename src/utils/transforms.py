@@ -22,9 +22,9 @@ trainingTransforms: Callable[..., torch.Tensor] = transforms.Compose(
         List[Callable[..., torch.Tensor]],
         [
             RandomHorizontalFlip(),
-            RandomVerticalFlip(0.3),
+            # RandomVerticalFlip(0.3),
             RandomAffine(20, shear=20, scale=(0.8, 1.2)),
-            ColorJitter(brightness=0.5, contrast=0.5, saturation=0.5),
+            ColorJitter(brightness=0.3, contrast=0.3, saturation=0.3),
             ToTensor(),
             # transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]),
         ],

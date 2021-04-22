@@ -46,7 +46,7 @@ def img_urls_from_page(page: str) -> List[str]:
     ]
 
 
-def engine_mp(name_page: Tuple[str, str]) -> None:
+def download_imgs_from_page(name_page: Tuple[str, str]) -> None:
     name, page = name_page
     urls = list(
         chain.from_iterable(
@@ -81,56 +81,45 @@ def download_imgflip_memes(fresh: bool = False):
         )
     with Pool(cpu_count()) as workers:
         _: List[None] = list(
-            tqdm(workers.imap_unordered(engine_mp, name_page), total=len(name_page))
-        )
-
-
-def print_names_missed():
-    print(
-        list(
-            name
-            for name, in training_db.query(Template.name).filter(
-                cast(ClauseElement, ~Template.name.in_(list(os.listdir(MEMES_REPO))))
+            tqdm(
+                workers.imap_unordered(download_imgs_from_page, name_page),
+                total=len(name_page),
             )
         )
-    )
 
 
-def fill_missing():
+def download_names_not_used():
+    names = [
+        name
+        for name in MEMES_TO_USE
+        if not Path(MEMES_REPO + name).is_dir()
+        or len(list(os.listdir(MEMES_REPO + name))) == 0
+    ]
+    for name in names:
+        Path(MEMES_REPO + name).mkdir(parents=True, exist_ok=True)
     name_page = (
         training_db.query(Template.name, Template.page)
-        .filter(cast(ClauseElement, ~Template.name.in_(list(os.listdir(MEMES_REPO)))))
+        .filter(cast(ClauseElement, Template.name.in_(names)))
         .all()
     )
-    _: List[None] = list(tqdm(map(engine_mp, name_page), total=len(name_page)))
+    with Pool(cpu_count()) as workers:
+        _: List[None] = list(
+            tqdm(
+                workers.imap_unordered(download_imgs_from_page, name_page),
+                total=len(name_page),
+            )
+        )
 
 
 def print_num_memes_in_folders():
     display_df(
         pd.DataFrame.from_records(
             list(
-                {"name": name, "num": len(list(os.listdir(MEMES_REPO + name)))}
+                {"name": name, "num": len(list(os.listdir(MEMES_REPO + name + "/")))}
                 for name in MEMES_TO_USE
             )
         ).sort_values("num")
     )
-
-
-def fill_folders():
-    names_to_fill = list(
-        name
-        for name in os.listdir(MEMES_REPO)
-        if len(list(os.listdir(MEMES_REPO + name))) < 100
-    )
-    name_page = (
-        training_db.query(Template.name, Template.page)
-        .filter(cast(ClauseElement, Template.name.in_(names_to_fill)))
-        .all()
-    )
-    print(f"names_to_fill = {len(names_to_fill)}")
-    _: List[None] = list(tqdm(map(engine_mp, name_page), total=len(name_page)))
-    # with Pool(cpu_count()) as workers:
-    #     list(tqdm(workers.imap_unordered(engine_mp, name_page), total=len(name_page)))
 
 
 def merge_replicated_folder():

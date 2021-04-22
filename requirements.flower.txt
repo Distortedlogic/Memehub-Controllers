@@ -100,7 +100,6 @@ alembic == 1.4.3
 
 # not found by pigar
 python-json-logger
-torch-lr-finder
 IPython
 retry
 sqlacodegen

@@ -97,6 +97,8 @@ def print_stats(name: str = ""):
         .filter(cast(ClauseElement, RedditMeme.version == None))
         .count()
     )
+    perc_correct = correct_stonk / (correct_stonk + wrong_stonk) if (correct_stonk + wrong_stonk) !=0 else 0
+    percent_correct=correct_stonks / (correct_stonks + wrong_stonks) if (correct_stonks + wrong_stonks) !=0 else 0
     display_df(
         pd.DataFrame.from_records(
             [
@@ -104,10 +106,12 @@ def print_stats(name: str = ""):
                     num_posts=num_posts,
                     correct_stonk=correct_stonk,
                     wrong_stonk=wrong_stonk,
+                    perc_correct=perc_correct,
                     memes_classified=memes_classified,
                     memes_unclassified=memes_unclassified,
                     correct_stonks=correct_stonks,
                     wrong_stonks=wrong_stonks,
+                    percent_correct=percent_correct,
                     correct_meme_clf=correct_meme_clf,
                     wrong_meme_clf=wrong_meme_clf,
                 )

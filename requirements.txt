@@ -103,10 +103,6 @@ alembic == 1.4.3
 tornado==6.1
 # not found by pigar
 python-json-logger
-torch-lr-finder
-cutelog
-PyQt5
-qtpy
 IPython
 retry
 sqlacodegen

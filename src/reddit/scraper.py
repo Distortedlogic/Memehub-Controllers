@@ -11,7 +11,7 @@ from retry import retry
 from src.constants import FULL_SUB_LIST, PUSHSHIFT_URI, get_beginning
 from src.generated.models import RedditMeme, Redditor
 from src.reddit.functions.database import redditmeme_max_ts, redditmeme_min_ts
-from src.reddit.functions.praw_mp import initializer, praw_by_id
+from src.reddit.functions.praw_mp import initializer, praw_by_id, redditData
 from src.session import site_db
 from tqdm import tqdm
 
@@ -45,11 +45,11 @@ class RedditScrapper:
                 collection.extend(posts)
             yield list(map(lambda post: post["id"], collection))
 
-    def praw_memes(self, verbose: bool) -> Iterator[List[Dict[str, Any]]]:
+    def praw_memes(self, verbose: bool) -> Iterator[List[redditData]]:
         for ids in self.query_pushshift():
             with cast(mpPool, Pool(cpu_count(), initializer)) as workers:
                 if verbose:
-                    memes: List[Union[Dict[str, Any], None]] = list(
+                    memes: list[Union[redditData,None]] = list(
                         tqdm(workers.imap_unordered(praw_by_id, ids))
                     )
                 else:
