@@ -210,7 +210,7 @@ def init_static() -> Static:
     return static
 
 
-def get_static_names(version: str) -> Static:
+def get_static_names(version: str, check_init: bool = True) -> Static:
     try:
         with open(LOAD_STATIC_PATH.format(version) + "static.json", "r") as f:
             static = json.load(f)
@@ -222,9 +222,8 @@ def get_static_names(version: str) -> Static:
                 static = json.load(f)
         except Exception:
             static = init_static()
-    if not PROD:
-        init = init_static()
-        for prop in init.keys():
+    if not PROD and check_init:
+        for prop in (init := init_static()).keys():
             try:
                 static[prop]
             except Exception:

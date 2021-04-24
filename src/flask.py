@@ -16,7 +16,7 @@ def create_app():
     _ = CORS(app, origins=["http://localhost", "https://backend.memehub.lol"])
     app.config.from_object("config.flask")
     rai = Client(host="redis", port=6379)
-    num_name = get_static_names(LOAD_MEME_CLF_VERSION)["num_name"]
+    num_name = get_static_names(LOAD_MEME_CLF_VERSION, check_init=False)["num_name"]
 
     @app.route("/meme_clf", methods=["POST"])
     def meme_clf() -> Dict[str, Any]:

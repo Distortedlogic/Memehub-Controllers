@@ -60,12 +60,13 @@ class Investment(Base):
     id = Column(UUID, primary_key=True)
     redditId = Column(String, nullable=False)
     betSize = Column(Integer, nullable=False)
-    odds = Column(Float(53), nullable=False)
+    target = Column(Float(53), nullable=False)
     percentile = Column(Float(53))
     userId = Column(ForeignKey('users.id', ondelete='CASCADE'), nullable=False)
     season = Column(Integer)
     createdAt = Column(DateTime, nullable=False, server_default=FetchedValue())
     updatedAt = Column(DateTime, nullable=False, server_default=FetchedValue())
+    profitLoss = Column(Integer)
 
     user = relationship('User', primaryjoin='Investment.userId == User.id', backref='investments')
 
