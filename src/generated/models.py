@@ -171,20 +171,9 @@ class RedditMeme(Base):
     num_comments = Column(Integer, nullable=False)
     redditor_id = Column(Integer)
     redditorId = Column(ForeignKey('redditors.id'))
+    percentile = Column(Float(53))
 
     redditor = relationship('Redditor', primaryjoin='RedditMeme.redditorId == Redditor.id', backref='reddit_memes')
-
-
-
-class RedditNew(Base):
-    __tablename__ = 'reddit_new'
-
-    id = Column(Integer, primary_key=True, server_default=FetchedValue())
-    username = Column(String(20), nullable=False)
-    reddit_id = Column(String(20), nullable=False)
-    title = Column(String(500), nullable=False)
-    url = Column(String(1000), nullable=False, unique=True)
-    created_at = Column(DateTime, nullable=False)
 
 
 

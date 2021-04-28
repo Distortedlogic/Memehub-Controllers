@@ -7,8 +7,6 @@ from celery import Celery
 TASK_LIST = [
     "src.tasks.reddit",
     "src.tasks.stonks",
-    "src.tasks.update_new",
-    "src.tasks.close_investments",
 ]
 
 
