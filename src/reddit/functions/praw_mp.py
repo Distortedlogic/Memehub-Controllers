@@ -1,7 +1,7 @@
 import random
 from datetime import datetime
 from json import loads
-from typing import Any, Dict, cast
+from typing import Any, Dict, TypedDict, cast
 
 from decouple import config
 from praw import Reddit
@@ -56,7 +56,20 @@ def praw_by_id(submission_id: str):
         pass
 
 
-def extract_data(submission: Submission) -> Dict[str, Any]:
+class redditData(TypedDict):
+    reddit_id: str
+    title: str
+    username: str
+    timestamp: int
+    created_at: datetime
+    url: str
+    upvote_ratio: float
+    upvotes: int
+    downvotes: int
+    num_comments: int
+
+
+def extract_data(submission: Submission) -> redditData:
     return {
         "reddit_id": submission.id,
         "title": submission.title,

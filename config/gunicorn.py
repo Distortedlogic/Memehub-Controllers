@@ -6,3 +6,4 @@ access_log_format = (
 log_level = "debug"
 reload = True
 workers = 1
+timeout = 120

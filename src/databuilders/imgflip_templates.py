@@ -53,7 +53,7 @@ def get_template_data(page_number: int) -> List[Dict[str, str]]:
     return templates
 
 
-def build_db() -> None:
+def build_template_db() -> None:
     print(f"num memes to use - {len(MEMES_TO_USE)}")
     _: Any = training_db.query(Template).delete()
     training_db.commit()
@@ -110,11 +110,7 @@ def download_blanks() -> None:
 
 
 def upload_to_aws_mp(filename: str) -> bool:
-    return upload_to_aws(
-        BLANKS_REPO + filename,
-        "memehub/templates/" + os.path.splitext(filename)[0],
-        False,
-    )
+    return upload_to_aws(BLANKS_REPO + filename)
 
 
 def blanks_to_aws() -> None:

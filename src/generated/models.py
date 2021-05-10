@@ -1,143 +1,113 @@
 # coding: utf-8
-from typing import Any, Dict
-
-from sqlalchemy import (
-    BigInteger,
-    Boolean,
-    Column,
-    DateTime,
-    Float,
-    ForeignKey,
-    Integer,
-    String,
-)
+from sqlalchemy import BigInteger, Boolean, Column, DateTime, Float, ForeignKey, Integer, MetaData, String
 from sqlalchemy.dialects.postgresql.base import UUID
-from sqlalchemy.ext.declarative import declarative_base
-from sqlalchemy.orm import relationship
 from sqlalchemy.schema import FetchedValue
-from src.reddit.functions.misc import dump_datetime
+from sqlalchemy.orm import relationship
+from sqlalchemy.ext.declarative import declarative_base
 
-Base: Any = declarative_base()
+
+Base = declarative_base()
 metadata = Base.metadata
 
 
-class CommentVote(Base):
-    __tablename__ = "comment_votes"
 
-    userId = Column(
-        ForeignKey("users.id", ondelete="CASCADE"), primary_key=True, nullable=False
-    )
-    commentId = Column(
-        ForeignKey("comments.id", ondelete="CASCADE"), primary_key=True, nullable=False
-    )
+class CommentVote(Base):
+    __tablename__ = 'comment_votes'
+
+    userId = Column(ForeignKey('users.id', ondelete='CASCADE'), primary_key=True, nullable=False)
+    commentId = Column(ForeignKey('comments.id', ondelete='CASCADE'), primary_key=True, nullable=False)
     upvote = Column(Boolean, nullable=False)
     createdAt = Column(DateTime, nullable=False, server_default=FetchedValue())
 
-    comment = relationship(
-        "Comment",
-        primaryjoin="CommentVote.commentId == Comment.id",
-        backref="comment_votes",
-    )
-    user = relationship(
-        "User", primaryjoin="CommentVote.userId == User.id", backref="comment_votes"
-    )
+    comment = relationship('Comment', primaryjoin='CommentVote.commentId == Comment.id', backref='comment_votes')
+    user = relationship('User', primaryjoin='CommentVote.userId == User.id', backref='comment_votes')
+
 
 
 class Comment(Base):
-    __tablename__ = "comments"
+    __tablename__ = 'comments'
 
     id = Column(UUID, primary_key=True)
     text = Column(String, nullable=False)
     isHive = Column(Boolean, nullable=False, server_default=FetchedValue())
     permlink = Column(String)
-    userId = Column(ForeignKey("users.id", ondelete="CASCADE"), nullable=False)
-    memeId = Column(ForeignKey("memes.id", ondelete="CASCADE"))
+    userId = Column(ForeignKey('users.id', ondelete='CASCADE'), nullable=False)
+    memeId = Column(ForeignKey('memes.id', ondelete='CASCADE'))
     ups = Column(Integer, nullable=False, server_default=FetchedValue())
     downs = Column(Integer, nullable=False, server_default=FetchedValue())
     ratio = Column(Float(53), nullable=False, server_default=FetchedValue())
     createdAt = Column(DateTime, nullable=False, server_default=FetchedValue())
     updatedAt = Column(DateTime, nullable=False, server_default=FetchedValue())
 
-    meme = relationship(
-        "Meme", primaryjoin="Comment.memeId == Meme.id", backref="comments"
-    )
-    user = relationship(
-        "User", primaryjoin="Comment.userId == User.id", backref="comments"
-    )
+    meme = relationship('Meme', primaryjoin='Comment.memeId == Meme.id', backref='comments')
+    user = relationship('User', primaryjoin='Comment.userId == User.id', backref='comments')
+
 
 
 class Emoji(Base):
-    __tablename__ = "emojis"
+    __tablename__ = 'emojis'
 
-    name = Column(String, primary_key=True)
+    id = Column(UUID, primary_key=True)
+    name = Column(String, nullable=False)
     url = Column(String, nullable=False)
     createdAt = Column(DateTime, nullable=False, server_default=FetchedValue())
 
 
-class Follow(Base):
-    __tablename__ = "follows"
 
-    followerId = Column(
-        ForeignKey("users.id", ondelete="CASCADE"), primary_key=True, nullable=False
-    )
-    followingId = Column(
-        ForeignKey("users.id", ondelete="CASCADE"), primary_key=True, nullable=False
-    )
+class Investment(Base):
+    __tablename__ = 'investments'
+
+    id = Column(UUID, primary_key=True)
+    redditId = Column(String, nullable=False)
+    betSize = Column(Integer, nullable=False)
+    target = Column(Float(53), nullable=False)
+    percentile = Column(Float(53))
+    userId = Column(ForeignKey('users.id', ondelete='CASCADE'), nullable=False)
+    season = Column(Integer)
     createdAt = Column(DateTime, nullable=False, server_default=FetchedValue())
+    updatedAt = Column(DateTime, nullable=False, server_default=FetchedValue())
+    profitLoss = Column(Integer)
 
-    user = relationship(
-        "User", primaryjoin="Follow.followerId == User.id", backref="user_follows"
-    )
-    user1 = relationship(
-        "User", primaryjoin="Follow.followingId == User.id", backref="user_follows_0"
-    )
+    user = relationship('User', primaryjoin='Investment.userId == User.id', backref='investments')
+
 
 
 class Market(Base):
-    __tablename__ = "market"
+    __tablename__ = 'market'
 
-    name = Column(String, primary_key=True, nullable=False)
-    createdAt = Column(DateTime, primary_key=True, nullable=False)
+    id = Column(UUID, primary_key=True)
+    name = Column(String, nullable=False)
+    templateId = Column(ForeignKey('templates.id'), nullable=False)
+    createdAt = Column(DateTime, nullable=False)
     numPosts = Column(Integer, nullable=False)
     numUpvotes = Column(Integer, nullable=False)
-    templateName = Column(ForeignKey("templates.name"))
 
-    template = relationship(
-        "Template",
-        primaryjoin="Market.templateName == Template.name",
-        backref="markets",
-    )
+    template = relationship('Template', primaryjoin='Market.templateId == Template.id', backref='markets')
+
 
 
 class MemeVote(Base):
-    __tablename__ = "meme_votes"
+    __tablename__ = 'meme_votes'
 
-    userId = Column(
-        ForeignKey("users.id", ondelete="CASCADE"), primary_key=True, nullable=False
-    )
-    memeId = Column(
-        ForeignKey("memes.id", ondelete="CASCADE"), primary_key=True, nullable=False
-    )
+    userId = Column(ForeignKey('users.id', ondelete='CASCADE'), primary_key=True, nullable=False)
+    memeId = Column(ForeignKey('memes.id', ondelete='CASCADE'), primary_key=True, nullable=False)
     upvote = Column(Boolean, nullable=False)
     createdAt = Column(DateTime, nullable=False, server_default=FetchedValue())
 
-    meme = relationship(
-        "Meme", primaryjoin="MemeVote.memeId == Meme.id", backref="meme_votes"
-    )
-    user = relationship(
-        "User", primaryjoin="MemeVote.userId == User.id", backref="meme_votes"
-    )
+    meme = relationship('Meme', primaryjoin='MemeVote.memeId == Meme.id', backref='meme_votes')
+    user = relationship('User', primaryjoin='MemeVote.userId == User.id', backref='meme_votes')
+
 
 
 class Meme(Base):
-    __tablename__ = "memes"
+    __tablename__ = 'memes'
 
     id = Column(UUID, primary_key=True)
     isHive = Column(Boolean, nullable=False, server_default=FetchedValue())
     title = Column(String)
     ocrText = Column(String)
     url = Column(String, nullable=False)
-    userId = Column(ForeignKey("users.id", ondelete="CASCADE"), nullable=False)
+    userId = Column(ForeignKey('users.id', ondelete='CASCADE'), nullable=False)
     meme_clf = Column(String)
     meme_clf_correct = Column(Boolean)
     version = Column(String)
@@ -149,29 +119,34 @@ class Meme(Base):
     createdAt = Column(DateTime, nullable=False, server_default=FetchedValue())
     updatedAt = Column(DateTime, nullable=False, server_default=FetchedValue())
 
-    user = relationship("User", primaryjoin="Meme.userId == User.id", backref="memes")
+    user = relationship('User', primaryjoin='Meme.userId == User.id', backref='memes')
+
 
 
 class Migration(Base):
-    __tablename__ = "migrations"
+    __tablename__ = 'migrations'
 
     id = Column(Integer, primary_key=True, server_default=FetchedValue())
     timestamp = Column(BigInteger, nullable=False)
     name = Column(String, nullable=False)
 
 
+
 class Rank(Base):
-    __tablename__ = "rank"
+    __tablename__ = 'rank'
 
     createdAt = Column(DateTime, primary_key=True, nullable=False)
     userId = Column(String, primary_key=True, nullable=False)
     timeFrame = Column(String, primary_key=True, nullable=False)
-    rank = Column(Integer, nullable=False)
+    mhpRank = Column(Integer, nullable=False)
     mhp = Column(Integer, nullable=False)
+    gbpRank = Column(Integer, nullable=False)
+    gbp = Column(Integer, nullable=False)
+
 
 
 class RedditMeme(Base):
-    __tablename__ = "reddit_memes"
+    __tablename__ = 'reddit_memes'
 
     id = Column(Integer, primary_key=True, server_default=FetchedValue())
     username = Column(String(20), nullable=False)
@@ -183,6 +158,10 @@ class RedditMeme(Base):
     is_a_template = Column(Boolean)
     meme_clf = Column(String(100))
     meme_clf_correct = Column(Boolean)
+    stonk = Column(Boolean)
+    stonk_correct = Column(Boolean)
+    stonk_official = Column(String)
+    is_a_template_official = Column(Boolean)
     version = Column(String(20))
     timestamp = Column(Integer, nullable=False)
     created_at = Column(DateTime, nullable=False)
@@ -191,21 +170,15 @@ class RedditMeme(Base):
     downvotes = Column(Integer, nullable=False)
     num_comments = Column(Integer, nullable=False)
     redditor_id = Column(Integer)
-    redditorId = Column(ForeignKey("redditors.id"))
-    stonk = Column(Boolean)
-    stonk_correct = Column(Boolean)
-    stonk_official = Column(String)
-    is_a_template_official = Column(Boolean)
+    redditorId = Column(ForeignKey('redditors.id'))
+    percentile = Column(Float(53))
 
-    redditor = relationship(
-        "Redditor",
-        primaryjoin="RedditMeme.redditorId == Redditor.id",
-        backref="reddit_memes",
-    )
+    redditor = relationship('Redditor', primaryjoin='RedditMeme.redditorId == Redditor.id', backref='reddit_memes')
+
 
 
 class RedditScore(Base):
-    __tablename__ = "reddit_scores"
+    __tablename__ = 'reddit_scores'
 
     id = Column(Integer, primary_key=True, server_default=FetchedValue())
     username = Column(String(20), nullable=False)
@@ -222,45 +195,63 @@ class RedditScore(Base):
     hu_score = Column(Float(53), nullable=False)
     lowest_ratio = Column(Float(53), nullable=False)
     redditor_id = Column(Integer)
-    redditorId = Column(ForeignKey("redditors.id"))
+    redditorId = Column(ForeignKey('redditors.id'))
 
-    redditor = relationship(
-        "Redditor",
-        primaryjoin="RedditScore.redditorId == Redditor.id",
-        backref="reddit_scores",
-    )
+    redditor = relationship('Redditor', primaryjoin='RedditScore.redditorId == Redditor.id', backref='reddit_scores')
+
 
 
 class Redditor(Base):
-    __tablename__ = "redditors"
+    __tablename__ = 'redditors'
 
     id = Column(Integer, primary_key=True, server_default=FetchedValue())
     username = Column(String(20), nullable=False, unique=True)
 
 
+
 class Template(Base):
-    __tablename__ = "templates"
-
-    name = Column(String, primary_key=True)
-    url = Column(String, nullable=False, unique=True)
-
-
-class Trade(Base):
-    __tablename__ = "trades"
+    __tablename__ = 'templates'
 
     id = Column(UUID, primary_key=True)
     name = Column(String, nullable=False)
-    entry = Column(Float(53), nullable=False)
-    exit = Column(Float(53), nullable=False)
-    createdAt = Column(DateTime, nullable=False, server_default=FetchedValue())
-    updatedAt = Column(DateTime, nullable=False, server_default=FetchedValue())
-    userId = Column(ForeignKey("users.id", ondelete="CASCADE"))
+    url = Column(String, nullable=False, unique=True)
 
-    user = relationship("User", primaryjoin="Trade.userId == User.id", backref="trades")
+
+
+class Trade(Base):
+    __tablename__ = 'trades'
+
+    id = Column(UUID, primary_key=True)
+    name = Column(String, nullable=False)
+    type = Column(String, nullable=False)
+    price = Column(Integer, nullable=False)
+    position = Column(Integer, nullable=False)
+    userId = Column(ForeignKey('users.id', ondelete='CASCADE'), nullable=False)
+    createdAt = Column(DateTime, nullable=False, server_default=FetchedValue())
+    templateId = Column(ForeignKey('templates.id'))
+
+    template = relationship('Template', primaryjoin='Trade.templateId == Template.id', backref='trades')
+    user = relationship('User', primaryjoin='Trade.userId == User.id', backref='trades')
+
+
+
+class UserMemeEmoji(Base):
+    __tablename__ = 'user_meme_emojis'
+
+    id = Column(UUID, primary_key=True)
+    userId = Column(ForeignKey('users.id'), nullable=False)
+    memeId = Column(ForeignKey('memes.id'), nullable=False)
+    emojiId = Column(ForeignKey('emojis.id'), nullable=False)
+    createdAt = Column(DateTime, nullable=False, server_default=FetchedValue())
+
+    emoji = relationship('Emoji', primaryjoin='UserMemeEmoji.emojiId == Emoji.id', backref='user_meme_emojis')
+    meme = relationship('Meme', primaryjoin='UserMemeEmoji.memeId == Meme.id', backref='user_meme_emojis')
+    user = relationship('User', primaryjoin='UserMemeEmoji.userId == User.id', backref='user_meme_emojis')
+
 
 
 class User(Base):
-    __tablename__ = "users"
+    __tablename__ = 'users'
 
     id = Column(UUID, primary_key=True)
     isHive = Column(Boolean, nullable=False, server_default=FetchedValue())
@@ -272,23 +263,13 @@ class User(Base):
     updatedAt = Column(DateTime, nullable=False, server_default=FetchedValue())
     password = Column(String)
     numMemeVotesGiven = Column(Integer, nullable=False, server_default=FetchedValue())
-    numMemeUpvotesRecieved = Column(
-        Integer, nullable=False, server_default=FetchedValue()
-    )
-    numMemeDownvotesRecieved = Column(
-        Integer, nullable=False, server_default=FetchedValue()
-    )
-    numMemeCommentsRecieved = Column(
-        Integer, nullable=False, server_default=FetchedValue()
-    )
-    numCommentVotesGiven = Column(
-        Integer, nullable=False, server_default=FetchedValue()
-    )
-    numCommentUpvotesRecieved = Column(
-        Integer, nullable=False, server_default=FetchedValue()
-    )
-    numCommentDownvotesRecieved = Column(
-        Integer, nullable=False, server_default=FetchedValue()
-    )
+    numMemeUpvotesRecieved = Column(Integer, nullable=False, server_default=FetchedValue())
+    numMemeDownvotesRecieved = Column(Integer, nullable=False, server_default=FetchedValue())
+    numMemeCommentsRecieved = Column(Integer, nullable=False, server_default=FetchedValue())
+    numCommentVotesGiven = Column(Integer, nullable=False, server_default=FetchedValue())
+    numCommentUpvotesRecieved = Column(Integer, nullable=False, server_default=FetchedValue())
+    numCommentDownvotesRecieved = Column(Integer, nullable=False, server_default=FetchedValue())
     mhp = Column(Integer, nullable=False, server_default=FetchedValue())
     gbp = Column(Integer, nullable=False, server_default=FetchedValue())
+    lastHivePost = Column(DateTime)
+    lastMemehubPost = Column(DateTime)

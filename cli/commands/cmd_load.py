@@ -1,13 +1,9 @@
 import os
-from pathlib import Path
 from typing import Any, List, Tuple, cast
 
-import boto3
 import click
 import ml2rt
 import redisai
-from botocore.exceptions import ClientError
-from decouple import config
 from src.constants import (
     LOAD_MEME_CLF_REPO,
     LOAD_MEME_CLF_VERSION,
@@ -15,33 +11,8 @@ from src.constants import (
     LOAD_STONK_VERSION,
 )
 
-resource = boto3.resource(
-    "s3", aws_access_key_id=config("AWS_ID"), aws_secret_access_key=config("AWS_KEY"),
-)
-bucket: Any = resource.Bucket("memehub")
-
-s3: Any = boto3.client(
-    "s3", aws_access_key_id=config("AWS_ID"), aws_secret_access_key=config("AWS_KEY"),
-)
-
 device = "CPU"
 backend = "torch"
-
-
-def download_aws(path: str):
-    if not Path(path).is_file():
-        with open(path, "wb") as f:
-            try:
-                s3.download_fileobj("memehub", path.replace("src", "memehub"), f)
-            except ClientError:
-                pass
-
-
-def download_jit_repo(repo: str):
-    for data in list(
-        bucket.objects.filter(Prefix=repo.format("jit").replace("src", "memehub"))
-    ):
-        download_aws(data.key.replace("memehub", "src"))
 
 
 @click.group()
@@ -55,8 +26,6 @@ def stonk_market():
     """
     Load Stonk models into redisai
     """
-    # download_jit_repo(LOAD_MEME_CLF_REPO)
-    # download_jit_repo(LOAD_STONK_REPO)
     rai = redisai.Client(host="redis", port=6379)
     current_stonks: List[str] = []
     for name, tag in cast(Tuple[str, str], rai.modelscan()):

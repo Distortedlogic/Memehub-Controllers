@@ -48,10 +48,10 @@ class Stonk(nn.Module):
         )
         self.stonk_opt = SGD(
             self.features_to_stonk.parameters(),
-            lr=0.000_000_1,
+            lr=0.000_01,
             momentum=0.9,
             dampening=0,
-            weight_decay=0.000_001,
+            weight_decay=0,  # 0.000_001,
             nesterov=True,
         )
         self.loss_func: Callable[..., torch.Tensor] = BCELoss()
@@ -86,7 +86,9 @@ class StonkTrainer(Trainer):
         self.features = self.features.eval()
         self.model: Stonk = self.get_model(100).to(device)
 
-    def get_num_correct(self, is_validation: bool) -> Tuple[int, int]:
+    def get_num_correct(
+        self, is_validation: bool, use_transforms: bool
+    ) -> Tuple[int, int]:
         with torch.no_grad():
             correct = 0
             total = 0
@@ -98,11 +100,12 @@ class StonkTrainer(Trainer):
                         self.static["names_to_shuffle"],
                         self.static["max_name_idx"],
                         is_validation=is_validation,
+                        is_training=False,
                         size=1,
-                        transform=not is_validation,
+                        use_transforms=use_transforms,
                     ),
                     batch_size=64,
-                    num_workers=4,
+                    num_workers=16,
                     collate_fn=cast(Any, None),
                 ),
             ):
@@ -129,7 +132,8 @@ class StonkTrainer(Trainer):
                         self.static["max_name_idx"],
                         is_validation=False,
                         size=4,
-                        transform=True,
+                        use_transforms=True,
+                        is_training=True,
                     ),
                     batch_size=batch_size,
                     num_workers=num_workers,
@@ -152,6 +156,7 @@ class StonkTrainer(Trainer):
     def update_loss(self):
         self.cp["min_loss"] = min(min(self.losses), self.cp["min_loss"])
         self.cp["loss_history"] += self.losses
+        self.new_loss = self.losses[-1]
         self.losses: List[float] = []
 
     def forward(self, images: torch.Tensor) -> torch.Tensor:
@@ -167,7 +172,8 @@ class StonkTrainer(Trainer):
                 self.static["max_name_idx"],
                 is_validation=False,
                 size=1,
-                transform=False,
+                is_training=False,
+                use_transforms=False,
             ),
         ):
             clear_output()
@@ -228,7 +234,7 @@ class StonkTrainer(Trainer):
 
     def check_point(self, is_backup: bool) -> None:
         self.model = self.model.to(torch.device("cpu"))
-        REPO = backup(MEME_CLF_REPO) if is_backup else MEME_CLF_REPO
+        REPO = backup(STONK_REPO) if is_backup else STONK_REPO
         torch.save(self.model, REPO.format("reg") + self.name + ".pt")
         jit.save(
             cast(ScriptModule, jit.script(self.model)),
@@ -252,7 +258,7 @@ class StonkTrainer(Trainer):
         # plt.ticklabel_format(style="plain", useOffset=False)
         _ = plt.plot(range(len(self.cp["loss_history"])), self.cp["loss_history"])
         plt.grid()
-        plt.title("Loss Full")
+        _ = plt.title("Loss Full")
         plt.show()
 
 
@@ -264,7 +270,8 @@ class StonkSet(IterableDataset[Dataset[torch.Tensor]]):
         max_name_idx: TestTrainToMax,
         is_validation: bool,
         size: int,
-        transform: bool,
+        is_training: bool,
+        use_transforms: bool,
         cpb: float = 2 / 5,
         nmpb: float = 1 / 10,
         ntpb: float = 1 / 5,
@@ -272,8 +279,11 @@ class StonkSet(IterableDataset[Dataset[torch.Tensor]]):
     ):
         self.name = name
         self.names = names
-        self.names = list(chain.from_iterable(repeat(names, size)))
-        if transform:
+        self.is_training = is_training
+        self.use_transforms = use_transforms
+        if is_training:
+            self.names = list(chain.from_iterable(repeat(names, size)))
+        if use_transforms:
             self.transforms = trainingTransforms
         else:
             self.transforms = toTensorOnly
@@ -398,7 +408,13 @@ class StonkSet(IterableDataset[Dataset[torch.Tensor]]):
             cast(ClauseElement, entity.name == self.name),
             cast(ClauseElement, entity.name_idx == rand),
         )
-        transforms = toTensorOnly if random.random() < 0.15 else self.transforms
+        if self.is_training and self.use_transforms == None:
+            transforms = toTensorOnly if random.random() < 0.15 else trainingTransforms
+        else:
+            if self.use_transforms:
+                transforms = trainingTransforms
+            else:
+                transforms = toTensorOnly
         return (
             transforms(
                 Img.open(
